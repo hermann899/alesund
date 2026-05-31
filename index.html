@@ -1054,16 +1054,17 @@ opacity:${opacity};
   visible.some(v => Number(v.id) === Number(spot.id));
         const marker = markers.get(Number(spot.id));
         const route = routeLines.get(Number(spot.id));
+        const isActive = Number(document.querySelector('.spot.active')?.dataset.id) === Number(spot.id);
 
         if (marker){
 		const disabled = spot.showOnMap === false;
 const isActive = Number(document.querySelector('.spot.active')?.dataset.id) === Number(spot.id);
 
 marker.setIcon(makeIcon(primaryType(spot), isActive, disabled));
-     if (show){
+      if (show){
   if (!map.hasLayer(marker)) marker.addTo(map);
 } else {
-  if (map.hasLayer(marker)) map.removeLayer(marker);
+  if (!map.hasLayer(marker)) marker.addTo(map);
 }
         }
 
@@ -1498,6 +1499,16 @@ function card(dirDeg){
   return dirs[Math.round((dirDeg % 360) / 45) % 8];
 }
 
+function parseTideXml(xmlDoc){
+  return [...xmlDoc.querySelectorAll('waterlevel')]
+    .map(n => ({
+      time: new Date(n.getAttribute('time')).getTime(),
+      value: Number(n.getAttribute('value'))
+    }))
+    .filter(x => Number.isFinite(x.time) && Number.isFinite(x.value))
+    .sort((a,b) => a.time - b.time);
+}
+
 function nearestPoint(points, targetMs){
   let best = null;
   for (const p of points){
@@ -1592,53 +1603,34 @@ async function refreshLiveData(){
     boxTide.innerHTML = 'Lade Tide…';
     boxBite.innerHTML = 'Lade Beißindex…';
     boxBestTimes.innerHTML = 'Lade beste Zeiten…';
-const from = toLocalISO(new Date(Date.now() - 2 * 3600 * 1000));
-const to = toLocalISO(new Date(Date.now() + 18 * 3600 * 1000));
 
-const weatherUrl =
-  `https://api.open-meteo.com/v1/forecast?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
-  `&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
-  `&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
-  `&wind_speed_unit=kmh&timezone=${encodeURIComponent(LIVE.tz)}`;
+    const from = toLocalISO(new Date(Date.now() - 2 * 3600 * 1000));
+    const to = toLocalISO(new Date(Date.now() + 18 * 3600 * 1000));
 
-const marineUrl =
-  `https://marine-api.open-meteo.com/v1/marine?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
-  `&current=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
-  `&hourly=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
-  `&length_unit=metric&timezone=${encodeURIComponent(LIVE.tz)}`;
+    const tideUrl =
+      `https://vannstand.kartverket.no/tideapi.php?lat=${LIVE.lat}&lon=${LIVE.lon}` +
+      `&fromtime=${encodeURIComponent(from)}&totime=${encodeURIComponent(to)}` +
+      `&datatype=all&interval=10&dst=1&tzone=1&refcode=cd&file=xml&lang=en&tide_request=locationdata`;
 
-const tideUrl =
-  `https://vannstand.kartverket.no/tideapi.php?lat=${LIVE.lat}&lon=${LIVE.lon}` +
-  `&fromtime=${encodeURIComponent(from)}&totime=${encodeURIComponent(to)}` +
-  `&datatype=all&interval=10&dst=1&tzone=1&refcode=cd&file=xml&lang=en&tide_request=locationdata`;
+    const weatherUrl =
+      `https://api.open-meteo.com/v1/forecast?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
+      `&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
+      `&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
+      `&wind_speed_unit=kmh&timezone=${encodeURIComponent(LIVE.tz)}`;
 
-const [tideXml, weather, marine] = await Promise.all([
-  fetchXML(tideUrl),
-  fetchJSON(weatherUrl),
-  fetchJSON(marineUrl)
-]);
-console.log(tideXml);
-console.log(tideXml.querySelectorAll('waterlevel').length);
-const tideSeries = [...tideXml.querySelectorAll('waterlevel')]
-  .map(el => ({
-    time: Date.parse(el.getAttribute('time')),
-    value: Number(el.getAttribute('value')),
-    flag: el.getAttribute('flag') || ''
-  }))
-  .filter(p => Number.isFinite(p.time) && Number.isFinite(p.value))
-  .sort((a, b) => a.time - b.time);
+    const marineUrl =
+      `https://marine-api.open-meteo.com/v1/marine?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
+      `&current=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
+      `&hourly=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
+      `&length_unit=metric&timezone=${encodeURIComponent(LIVE.tz)}`;
 
-if (!tideSeries.length) {
+    const [tideXml, weather, marine] = await Promise.all([
+      fetchXML(tideUrl),
+      fetchJSON(weatherUrl),
+      fetchJSON(marineUrl)
+    ]);
 
-  boxTide.innerHTML = `
-    <div class="liveK">Tide / Wasserstand</div>
-    <div class="liveSmall">
-      Zurzeit keine Tide-Daten verfügbar.
-    </div>
-  `;
-
-  return;
-}
+    const tideSeries = parseTideXml(tideXml);
     const tideNow = nearestPoint(tideSeries, Date.now());
     const tideExt = extrema(tideSeries).filter(x => x.time > Date.now());
     const nextTurn = tideExt[0] || null;
@@ -1684,7 +1676,7 @@ if (!tideSeries.length) {
         label: new Date(time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
         score: s
       };
-    }).sort((a, b) => b.score - a.score).slice(0, 3);
+    }).sort((a,b) => b.score - a.score).slice(0, 3);
 
     boxWind.innerHTML = `
       <div class="liveK">Wind</div>
@@ -1752,7 +1744,7 @@ if (!tideSeries.length) {
     boxWind.innerHTML = 'Live-Daten nicht geladen.';
     boxCurrent.innerHTML = 'Live-Daten nicht geladen.';
     boxWave.innerHTML = 'Live-Daten nicht geladen.';
-    boxTide.innerHTML = `Live-Daten nicht geladen: ${err.message}`;
+    boxTide.innerHTML = 'Live-Daten nicht geladen.';
     boxBite.innerHTML = 'Live-Daten nicht geladen.';
     boxBestTimes.innerHTML = 'Live-Daten nicht geladen.';
     console.error(err);
