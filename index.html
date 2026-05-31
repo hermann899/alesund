@@ -1455,7 +1455,7 @@ document.getElementById("saveEditBtn").addEventListener("click", () => {
     <div class="liveCard" id="boxWind"></div>
     <div class="liveCard" id="boxCurrent"></div>
     <div class="liveCard" id="boxWave"></div>
-    <div class="liveCard" id="boxTide"></div>
+<div class="liveCard" id="boxTide"></div>
   </div>
 
   <div class="liveCard wide" id="boxBite"></div>
@@ -1556,6 +1556,9 @@ async function fetchXML(url){
   if (!res.ok) throw new Error(`Tide fetch failed: ${res.status}`);
   const text = await res.text();
   return new DOMParser().parseFromString(text, 'application/xml');
+  console.log("TIDE XML ROOT:", tideXml.documentElement?.tagName);
+console.log("TIDE RAW:", tideXml.documentElement?.innerHTML?.slice(0, 500));
+console.log("POINTS:", tidePoints.length);
 }
 
 async function fetchJSON(url){
@@ -1630,11 +1633,6 @@ async function refreshLiveData(){
     const from = toLocalISO(new Date(Date.now() - 2 * 3600 * 1000));
     const to = toLocalISO(new Date(Date.now() + 18 * 3600 * 1000));
 
-    const tideUrl =
-      `https://vannstand.kartverket.no/tideapi.php?lat=${LIVE.lat}&lon=${LIVE.lon}` +
-      `&fromtime=${encodeURIComponent(from)}&totime=${encodeURIComponent(to)}` +
-      `&datatype=all&interval=10&dst=1&tzone=1&refcode=cd&file=xml&lang=en&tide_request=locationdata`;
-
     const weatherUrl =
       `https://api.open-meteo.com/v1/forecast?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
       `&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
@@ -1650,7 +1648,7 @@ async function refreshLiveData(){
     const weather = await fetchJSON(weatherUrl);
     const marine = await fetchJSON(marineUrl);
 
-    // ✅ FIX: sichere Current-Fallbacks (WICHTIG)
+    // ===== SAFE CURRENT FALLBACKS =====
     const wNow = weather.current ?? {
       wind_speed_10m: weather.hourly?.wind_speed_10m?.[0],
       wind_direction_10m: weather.hourly?.wind_direction_10m?.[0],
@@ -1665,86 +1663,52 @@ async function refreshLiveData(){
       sea_level_height_msl: marine.hourly?.sea_level_height_msl?.[0]
     };
 
-    const windSpeed = Number(wNow.wind_speed_10m);
-    const windDir = Number(wNow.wind_direction_10m);
-    const windGust = Number(wNow.wind_gusts_10m);
+    // ===== SAFE NUMBERS =====
+    const windSpeed = Number(wNow.wind_speed_10m ?? 0);
+    const windDir   = Number(wNow.wind_direction_10m ?? 0);
+    const windGust  = Number(wNow.wind_gusts_10m ?? 0);
 
-    const waveHeight = Number(mNow.wave_height);
-    const waveDir = Number(mNow.wave_direction);
-    const currentSpeed = Number(mNow.ocean_current_velocity);
-    const currentDir = Number(mNow.ocean_current_direction);
-    const seaLevel = Number(mNow.sea_level_height_msl);
+    const waveHeight = Number(mNow.wave_height ?? 0);
+    const waveDir    = Number(mNow.wave_direction ?? 0);
 
-    let tideNow = null;
-    let nextHigh = null;
-    let nextLow = null;
+    const currentSpeed = Number(mNow.ocean_current_velocity ?? 0);
+    const currentDir   = Number(mNow.ocean_current_direction ?? 0);
+
+    const seaLevel = Number(mNow.sea_level_height_msl ?? 0);
+
+    // ❌ TIDE KOMPLETT ENTFERNT (kein Parsing mehr)
+
     let nextTurn = null;
-    let minutesToTideTurn = 999;
-
-    try {
-      const tideXml = await fetchXML(tideUrl);
-
-      const waterNodes = [...tideXml.querySelectorAll('waterlevel')];
-
-      const tidePoints = waterNodes.map(node => ({
-        time: new Date(
-          node.getAttribute('time') ||
-          node.getAttribute('date') ||
-          node.getAttribute('value')
-        ).getTime(),
-        value: Number(node.getAttribute('value') || node.textContent)
-      }))
-      .filter(p => Number.isFinite(p.time))
-      .sort((a,b) => a.time - b.time);
-
-      if (tidePoints.length){
-
-        tideNow = nearestPoint(tidePoints, Date.now());
-
-        const tideExtrema = extrema(tidePoints)
-          .filter(x => x.time > Date.now())
-          .sort((a,b) => a.time - b.time);
-
-        nextHigh = tideExtrema.find(x => x.kind === 'Hochwasser') || null;
-        nextLow  = tideExtrema.find(x => x.kind === 'Ebbe') || null;
-
-        const candidates = [nextHigh, nextLow]
-          .filter(Boolean)
-          .sort((a,b) => a.time - b.time);
-
-        nextTurn = candidates[0] || null;
-
-        if (nextTurn){
-          minutesToTideTurn = Math.round((nextTurn.time - Date.now()) / 60000);
-        }
-      }
-
-    } catch(err){
-      console.warn("Kartverket Tide nicht verfügbar:", err);
-    }
 
     const bite = scoreBite({
       windSpeed,
       waveHeight,
       currentSpeed,
-      minutesToTideTurn
+      minutesToTideTurn: 999
     });
 
-    const nextHours = (weather.hourly?.time || []).slice(0, 12).map((t, i) => {
-      const time = new Date(t).getTime();
+    const nextHours = (weather.hourly?.time || [])
+      .slice(0, 12)
+      .map((t, i) => {
+        const time = new Date(t).getTime();
 
-      const s = scoreBite({
-        windSpeed: Number(weather.hourly.wind_speed_10m?.[i] ?? windSpeed),
-        waveHeight: Number(marine.hourly.wave_height?.[i] ?? waveHeight),
-        currentSpeed: Number(marine.hourly.ocean_current_velocity?.[i] ?? currentSpeed),
-        minutesToTideTurn: nextTurn ? Math.abs(nextTurn.time - time) / 60000 : 999
-      });
+        const s = scoreBite({
+          windSpeed: Number(weather.hourly.wind_speed_10m?.[i] ?? windSpeed),
+          waveHeight: Number(marine.hourly.wave_height?.[i] ?? waveHeight),
+          currentSpeed: Number(marine.hourly.ocean_current_velocity?.[i] ?? currentSpeed),
+          minutesToTideTurn: 999
+        });
 
-      return {
-        label: new Date(time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-        score: s
-      };
-    }).sort((a,b) => b.score - a.score).slice(0, 3);
+        return {
+          label: new Date(time).toLocaleTimeString('de-DE', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          score: s
+        };
+      })
+      .sort((a,b) => b.score - a.score)
+      .slice(0, 3);
 
     boxWind.innerHTML = `
       <div class="liveK">Wind</div>
@@ -1774,17 +1738,40 @@ async function refreshLiveData(){
     `;
 
     boxTide.innerHTML = `
-      <div class="liveK">Tide / Wasserstand</div>
+      <div class="liveK">Bootsangeln & Tide</div>
+
       <div class="liveRow">
-        <div class="liveV">
-          ${tideNow ? fmt(tideNow.value, 2) + ' m' : '–'}
-        </div>
-        <div>${nextTurn ? (nextTurn === nextHigh ? 'Hochwasser' : 'Ebbe') : '–'}</div>
+        <div class="liveV">Beste Zeitfenster</div>
+        <div>🌊</div>
       </div>
+
       <div class="liveSmall">
-        Nächste Flut: ${nextHigh ? new Date(nextHigh.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}<br>
-        Nächste Ebbe: ${nextLow ? new Date(nextLow.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}
+        In Ålesund sind die besten Zeiten fürs Bootangeln:
+        <br><br>
+
+        <b>➤ 1–2 Stunden vor Hochwasser</b><br>
+        <b>➤ um den Tidenwechsel</b><br>
+        <b>➤ 1–2 Stunden nach Hochwasser</b><br><br>
+
+        Strömungskanten, Fjordeinengungen und Hafenbereiche sind besonders produktiv,
+        weil dort Beutefische konzentriert werden.
       </div>
+
+      <a href="https://fishingpoints.app/de/forecasts/europe/norway/c/alesund/"
+         target="_blank"
+         class="liveBtn"
+         style="
+            display:inline-block;
+            margin-top:10px;
+            padding:10px 12px;
+            border-radius:10px;
+            background:#1f6feb;
+            color:white;
+            text-decoration:none;
+            font-weight:600;
+         ">
+        Öffne Forecasts
+      </a>
     `;
 
     boxBite.innerHTML = `
@@ -1794,7 +1781,7 @@ async function refreshLiveData(){
         <div class="score ${scoreClass(bite)}">${scoreLabel(bite)}</div>
       </div>
       <div class="liveSmall">
-        Kombiniert aus Wind, Wellen, Strömung und Tidewechsel.
+        Kombiniert aus Wind, Wellen und Strömung.
       </div>
     `;
 
@@ -1808,7 +1795,7 @@ async function refreshLiveData(){
           </div>
         `).join('')}
       </div>
-      <div class="liveSmall">Die besten 3 Stunden für Ålesund, laufend neu berechnet.</div>
+      <div class="liveSmall">Top 3 Stunden für heute in Ålesund.</div>
     `;
 
   } catch (err){
