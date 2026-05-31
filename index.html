@@ -9,39 +9,52 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    :root{
-      --bg:#07111c;
-      --panel:#0c1724cc;
-      --panel-strong:#0d1a2a;
-      --line:#223347;
-      --text:#e9f1ff;
-      --muted:#96a8bf;
-      --accent:#66d9ef;
-      --accent2:#8dffb3;
-      --warn:#ffcb66;
-      --danger:#ff6b8b;
-      --shadow:0 18px 50px rgba(0,0,0,.38);
-      --radius:22px;
-    }
+.gmaps-btn{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:10px;
+  background:#66d9ef;
+  color:#07111c;
+  text-align:center;
+  font-weight:800;
+  text-decoration:none;
+  box-sizing:border-box;
+  font-size:13px;
+}
+.gmaps-btn:hover{
+  filter:brightness(1.05);
+}
+ :root{
+  --bg:#07111c;
+  --panel:#0c1724cc;
+  --panel-strong:#0d1a2a;
+  --line:#223347;
+  --text:#e9f1ff;
+  --muted:#cfe3ff; /* WICHTIG: heller als vorher */
+  --accent:#66d9ef;
+  --accent2:#8dffb3;
+  --warn:#ffcb66;
+  --danger:#ff6b8b;
+}
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:radial-gradient(1200px 700px at 20% 0%, #0d1d30 0%, var(--bg) 50%, #04090f 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overflow:hidden}
     a{color:inherit}
     .app{display:grid;grid-template-columns:390px 1fr;height:100vh}
     .sidebar{
       position:relative;z-index:5;
-      background:linear-gradient(180deg, rgba(10,18,30,.98), rgba(8,13,20,.94));
+       background:linear-gradient(180deg, rgba(10,18,30,.99), rgba(5,10,18,.98));
       border-right:1px solid rgba(255,255,255,.06);
       box-shadow:var(--shadow);
       overflow:auto;
       padding:18px 16px 20px;
     }
     .hero{background:linear-gradient(135deg, rgba(102,217,239,.14), rgba(141,255,179,.12) 45%, rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.08);border-radius:26px;padding:18px 16px 16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
-    .eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:#bdefff;background:rgba(102,217,239,.1);border:1px solid rgba(102,217,239,.2);padding:7px 10px;border-radius:999px}
+    .eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:#bdefff;background:rgba(102,217,239,.1);border:1px solid rgba(102,217,239,.2);padding:7px 10px;border-radius:999px}
     h1{font-size:26px;line-height:1.05;margin:14px 0 8px;font-weight:800}
     .subtitle{color:var(--muted);font-size:13px;line-height:1.6;margin:0}
     .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
     .stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:12px 12px 10px}
-    .stat .label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+    .stat .label{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
     .stat .value{font-size:17px;font-weight:800;margin-top:6px}
     .controls{display:grid;gap:10px;margin:14px 0}
     .controlRow{display:flex;gap:10px;flex-wrap:wrap}
@@ -56,11 +69,11 @@
     .btn{cursor:pointer;user-select:none;font-weight:700}
     .btn:hover, .search:focus, .select:focus{border-color:rgba(102,217,239,.4);box-shadow:0 0 0 4px rgba(102,217,239,.08)}
     .chipbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
-    .chip{cursor:pointer;border-radius:999px;padding:8px 12px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#dbe8f7;transition:.18s ease}
+    .chip{cursor:pointer;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:700;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);color:#dbe8f7;transition:.18s ease}
     .chip.active{background:linear-gradient(135deg, rgba(102,217,239,.18), rgba(141,255,179,.16));border-color:rgba(102,217,239,.5);color:#fff}
     .sectionTitle{display:flex;justify-content:space-between;align-items:center;margin:16px 2px 10px}
     .sectionTitle h2{font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:#b9c9dc;margin:0}
-    .small{font-size:12px;color:var(--muted)}
+    .small{font-size:13px;color:var(--muted)}
     .spotList{display:grid;gap:10px}
     .spot{
       background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
@@ -73,9 +86,9 @@
     .badge{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.08)}
     .badge svg{width:22px;height:22px;display:block}
     .spotName{font-size:14px;font-weight:800;margin:0 0 4px}
-    .spotMeta{font-size:12px;color:var(--muted);line-height:1.55;margin:0}
+    .spotMeta{font-size:13px;color:var(--muted);line-height:1.55;margin:0}
     .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-    .tag{font-size:11px;font-weight:700;padding:5px 8px;border-radius:999px;background:rgba(102,217,239,.11);border:1px solid rgba(102,217,239,.18);color:#d8f5ff}
+    .tag{font-size:13px;font-weight:700;padding:5px 8px;border-radius:999px;background:rgba(102,217,239,.11);border:1px solid rgba(102,217,239,.18);color:#d8f5ff}
     .tag.alt{background:rgba(141,255,179,.09);border-color:rgba(141,255,179,.2);color:#e9ffef}
     .tag.warn{background:rgba(255,203,102,.1);border-color:rgba(255,203,102,.18);color:#fff4d4}
     .detail{
@@ -85,9 +98,9 @@
     .detail p{margin:0 0 9px;color:#d7e1ef;font-size:13px;line-height:1.62}
     .detail .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
     .kv{padding:10px 10px 9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:14px}
-    .kv .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    .kv .k{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
     .kv .v{font-size:13px;font-weight:700;margin-top:4px;line-height:1.45}
-    .footerNote{margin-top:14px;padding:12px 12px 0;color:var(--muted);font-size:12px;line-height:1.7}
+    .footerNote{margin-top:14px;padding:12px 12px 0;color:var(--muted);font-size:13px;line-height:1.7}
     #mapWrap{position:relative}
     #map{height:100%;width:100%}
     .mapChrome{
@@ -96,13 +109,13 @@
       pointer-events:none;
     }
     .pill{
-      pointer-events:auto;background:rgba(10,17,27,.78);backdrop-filter:blur(10px);
-      color:#eff6ff;border:1px solid rgba(255,255,255,.10);padding:10px 12px;border-radius:999px;font-size:12px;font-weight:700;box-shadow:var(--shadow)
+      pointer-events:auto;background:rgba(10,17,27,.92);backdrop-filter:blur(10px);
+      color:#eff6ff;border:1px solid rgba(255,255,255,.10);padding:10px 12px;border-radius:999px;font-size:13px;font-weight:700;box-shadow:var(--shadow)
     }
     .legendBox{
-      pointer-events:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(10,17,27,.78);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.10);padding:10px 12px;border-radius:18px;box-shadow:var(--shadow)
+      pointer-events:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(10,17,27,.92);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.10);padding:10px 12px;border-radius:18px;box-shadow:var(--shadow)
     }
-    .legendItem{display:flex;align-items:center;gap:7px;font-size:12px;color:#ecf6ff;font-weight:700}
+    .legendItem{display:flex;align-items:center;gap:7px;font-size:13px;color:#ecf6ff;font-weight:700}
     .legendDot{width:10px;height:10px;border-radius:50%}
     .legendDot.kante{background:#ff7a7a}
     .legendDot.plattfisch{background:#66d9ef}
@@ -114,8 +127,8 @@
     .popupTitle{font-weight:800;font-size:15px;margin:0 0 6px}
     .popupText{font-size:13px;line-height:1.55;color:#dde8f5;margin:0 0 8px}
     .popupGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-    .popupK{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#98abc1}
-    .popupV{font-size:12px;font-weight:700;margin-top:3px}
+    .popupK{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#98abc1}
+    .popupV{font-size:13px;font-weight:700;margin-top:3px}
     .routeLine{filter:drop-shadow(0 0 4px rgba(102,217,239,.35))}
     .leaflet-container{font-family:inherit}
     .leaflet-control-zoom{border:none!important;box-shadow:var(--shadow)!important;overflow:hidden;border-radius:14px!important}
@@ -124,7 +137,7 @@
     .leaflet-control-layers-expanded{background:rgba(10,17,27,.86)!important;color:#fff!important}
     .leaflet-control-layers label{font-size:12px}
     .hint{
-      display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px dashed rgba(255,255,255,.12);padding:9px 11px;border-radius:14px;color:#d7e5f5;font-size:12px;line-height:1.45
+      display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px dashed rgba(255,255,255,.12);padding:9px 11px;border-radius:14px;color:#d7e5f5;font-size:13px;line-height:1.45
     }
     .miniDot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
     @media (max-width: 980px){
@@ -133,56 +146,188 @@
       #mapWrap{order:1}
       #map{height:420px}
     }
+
+    #splash{
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at center, rgba(15,24,38,.92), rgba(3,7,12,.98));
+      backdrop-filter: blur(8px);
+      transition: opacity .8s ease, transform .8s ease;
+    }
+
+    #splash.hide{
+      opacity: 0;
+      transform: scale(1.02);
+      pointer-events: none;
+    }
+
+    #splashImg{
+      width: min(78vw, 720px);
+      max-height: 72vh;
+      object-fit: contain;
+      border-radius: 26px;
+      box-shadow: 0 30px 90px rgba(0,0,0,.55);
+      animation: introFloat 3.8s ease-in-out infinite;
+      transform-origin: center;
+      filter: saturate(1.05) contrast(1.02);
+    }
+
+    @keyframes introFloat{
+      0%   { transform: scale(.92) translateY(12px); opacity: 0; }
+      20%  { opacity: 1; }
+      50%  { transform: scale(1.00) translateY(0px); }
+      100% { transform: scale(1.03) translateY(-6px); opacity: 1; }
+    }
 	
-	#splash{
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: grid;
-  place-items: center;
-  background: radial-gradient(circle at center, rgba(15,24,38,.92), rgba(3,7,12,.98));
-  backdrop-filter: blur(8px);
-  transition: opacity .8s ease, transform .8s ease;
+	.liveToggle{
+  position:fixed;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:14000;
+  width:34px;
+  height:92px;
+  border-radius:14px 0 0 14px;
+  background:rgba(10,17,27,.96);
+  color:#fff;
+  border:1px solid rgba(255,255,255,.1);
+  border-right:none;
+  box-shadow:var(--shadow);
+  font-size:20px;
+  font-weight:900;
+  cursor:pointer;
 }
 
-#splash.hide{
-  opacity: 0;
-  transform: scale(1.02);
-  pointer-events: none;
+.livePanel{
+  position:fixed;
+  inset:0;
+  z-index:13900;
+  background:rgba(4,9,15,.96);
+  transform:translateX(100%);
+  transition:transform .28s ease;
+  padding:18px;
+  overflow:auto;
 }
 
-#splashImg{
-  width: min(78vw, 720px);
-  max-height: 72vh;
-  object-fit: contain;
-  border-radius: 26px;
-  box-shadow: 0 30px 90px rgba(0,0,0,.55);
-  animation: introFloat 3.8s ease-in-out infinite;
-  transform-origin: center;
-  filter: saturate(1.05) contrast(1.02);
+.livePanel.open{
+  transform:translateX(0);
 }
 
-@keyframes introFloat{
-  0%   { transform: scale(.92) translateY(12px); opacity: 0; }
-  20%  { opacity: 1; }
-  50%  { transform: scale(1.00) translateY(0px); }
-  100% { transform: scale(1.03) translateY(-6px); opacity: 1; }
+.liveTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:16px;
 }
+
+.liveTitle{
+  margin:8px 0 0;
+  font-size:24px;
+  font-weight:900;
+}
+
+.liveGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.liveCard{
+  background:rgba(10,17,27,.92);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:20px;
+  padding:14px;
+  box-shadow:var(--shadow);
+}
+
+.liveCard.wide{
+  margin-top:12px;
+}
+
+.liveRow{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:center;
+  margin-top:8px;
+}
+
+.liveK{
+  color:var(--muted);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.liveV{
+  font-size:18px;
+  font-weight:900;
+}
+
+.liveSmall{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+  margin-top:8px;
+}
+
+.liveArrow{
+  display:inline-block;
+  font-size:18px;
+  transform-origin:center;
+}
+
+.score{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-weight:900;
+}
+
+.score.good{ color:#8dffb3; }
+.score.mid{ color:#ffcb66; }
+.score.bad{ color:#ff6b8b; }
+
+.bestList{
+  display:grid;
+  gap:8px;
+  margin-top:10px;
+}
+
+.bestItem{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.06);
+}
+
+@media (max-width: 760px){
+  .liveGrid{ grid-template-columns:1fr; }
+}
+	
   </style>
 </head>
 <body>
 <div id="splash">
   <img id="splashImg" src="https://i.postimg.cc/VNmVm2RN/Whats-App-Image-2026-05-31-at-11-20-05.jpg" alt="Intro">
 </div>
+
   <div class="app">
     <aside class="sidebar">
-<div class="hero">
-  <div class="eyebrow">🎣 Ålesund Angelkarte</div>
+      <div class="hero">
+        <div class="eyebrow">🎣 Ålesund Angelkarte</div>
 
-  <div class="scrollHint">
-    <span>↓</span>
-    <small>Scrollmenü</small>
-  </div>
+        <div class="scrollHint">
+          <span>↓</span>
+          <small>Scrollmenü</small>
+        </div>
 
         <p class="subtitle">
           Klickbare Punkte mit kurzer Beschreibung, Distanz ab Ålesund mit Boot
@@ -197,6 +342,7 @@
 
       <div class="controls">
         <input id="search" class="search" type="search" placeholder="Suchen: Dorsch, Kante, Makrele, Ort..." />
+
         <div class="controlRow">
           <select id="depthFilter" class="select">
             <option value="all">Alles</option>
@@ -207,13 +353,21 @@
           </select>
           <button id="fitAll" class="btn">Alle anzeigen</button>
         </div>
-        <div class="chipbar" id="chipbar">
-          <button class="chip active" data-chip="all">Alle</button>
-          <button class="chip" data-chip="kante">Kanten</button>
-          <button class="chip" data-chip="dorsch">Dorsch</button>
-          <button class="chip" data-chip="plattfisch">Plattfisch</button>
-          <button class="chip" data-chip="makrele">Makrele</button>
+
+        <div class="controlRow">
+          <button id="addSpotBtn" class="btn">➕ Spot</button>
+          <button id="exportBtn" class="btn">📤 Export</button>
+          <button id="importBtn" class="btn">📥 Import</button>
+          <input type="file" id="importFile" accept=".json" style="display:none">
         </div>
+      </div>
+
+      <div class="chipbar" id="chipbar">
+        <button class="chip active" data-chip="all">Alle</button>
+        <button class="chip" data-chip="kante">Kanten</button>
+        <button class="chip" data-chip="dorsch">Dorsch</button>
+        <button class="chip" data-chip="plattfisch">Plattfisch</button>
+        <button class="chip" data-chip="makrele">Makrele</button>
       </div>
 
       <div class="sectionTitle">
@@ -222,17 +376,7 @@
       </div>
       <div class="spotList" id="spotList"></div>
 
-      <div class="detail" id="detailBox">
-        <h3 id="detailTitle">Punkt auswählen</h3>
-        <p id="detailDesc">Klicke in die Liste oder auf Marker in Karte.</p>
-        <div class="grid">
-          <div class="kv"><div class="k">Koordinaten</div><div class="v" id="detailCoords">–</div></div>
-          <div class="kv"><div class="k">Fahrweg</div><div class="v" id="detailDrive">–</div></div>
-          <div class="kv"><div class="k">Zielfische</div><div class="v" id="detailFish">–</div></div>
-          <div class="kv"><div class="k">Tiefe</div><div class="v" id="detailDepth">–</div></div>
-        </div>
-        <p style="margin-top:10px;color:var(--muted)"></p>
-      </div>
+ 
 
       <div class="footerNote">
         <div class="hint"><span class="miniDot"></span></div>
@@ -258,9 +402,10 @@
   <script>
     const start = { name: 'Ålesund', lat: 62.4722, lng: 6.1549 };
 
-    const spots = [
+    let spots = [
       {
         id: 1,
+		showOnMap: true,
         name: 'Sandøya Nordkante',
         lat: 62.393333,
         lng: 5.789139,
@@ -274,6 +419,7 @@
       },
       {
         id: 2,
+		showOnMap: true,
         name: 'Kante 16 auf 40 m',
         lat: 62.536194,
         lng: 5.817444,
@@ -287,6 +433,7 @@
       },
       {
         id: 3,
+		showOnMap: true,
         name: 'Pollack / Köhler-Kante südlich',
         lat: 62.444750,
         lng: 5.862028,
@@ -300,6 +447,7 @@
       },
       {
         id: 4,
+		showOnMap: true,
         name: 'Kante 16 auf 50 m',
         lat: 62.491944,
         lng: 5.892333,
@@ -313,6 +461,7 @@
       },
       {
         id: 5,
+		showOnMap: true,
         name: 'Kante 30 auf 70 m',
         lat: 62.456444,
         lng: 5.945722,
@@ -326,6 +475,7 @@
       },
       {
         id: 6,
+		showOnMap: true,
         name: 'Steinbeißer-Punkt',
         lat: 62.457889,
         lng: 5.959222,
@@ -339,6 +489,7 @@
       },
       {
         id: 7,
+		showOnMap: true,
         name: 'Seelachs-Schwärme am Fahrwasser',
         lat: 62.443111,
         lng: 5.975833,
@@ -352,6 +503,7 @@
       },
       {
         id: 8,
+		showOnMap: true,
         name: '100 auf 300 m Driftkante',
         lat: 62.427389,
         lng: 6.043861,
@@ -365,6 +517,7 @@
       },
       {
         id: 9,
+		showOnMap: true,
         name: 'Heilbutt / Scholle / Sand',
         lat: 62.478639,
         lng: 6.049667,
@@ -378,6 +531,7 @@
       },
       {
         id: 10,
+		showOnMap: true,
         name: '30 auf 60 m Kante',
         lat: 62.469306,
         lng: 6.066639,
@@ -391,6 +545,7 @@
       },
       {
         id: 11,
+		showOnMap: true,
         name: 'Makrele / Köhler',
         lat: 62.458944,
         lng: 6.029833,
@@ -404,6 +559,7 @@
       },
       {
         id: 12,
+		showOnMap: true,
         name: 'Seelachs / Leng / Dorsch-Löcher',
         lat: 62.448778,
         lng: 6.074806,
@@ -417,6 +573,7 @@
       },
       {
         id: 13,
+		showOnMap: true,
         name: 'Wittling westlich',
         lat: 62.4860,
         lng: 6.0761,
@@ -430,6 +587,7 @@
       },
       {
         id: 14,
+		showOnMap: true,
         name: '34 m Berg / Südwestkante',
         lat: 62.487028,
         lng: 6.081639,
@@ -443,6 +601,7 @@
       },
       {
         id: 15,
+		showOnMap: true,
         name: 'Plattfische / Heilbutt',
         lat: 62.510111,
         lng: 6.096472,
@@ -456,6 +615,7 @@
       },
       {
         id: 16,
+		showOnMap: true,
         name: 'Unterwasserberge / Allround',
         lat: 62.447167,
         lng: 6.132472,
@@ -469,6 +629,7 @@
       },
       {
         id: 17,
+		showOnMap: true,
         name: 'Felsig / Strömungskanten',
         lat: 62.498222,
         lng: 6.156056,
@@ -482,6 +643,7 @@
       },
       {
         id: 18,
+		showOnMap: true,
         name: 'Lille Kalvøy Nordwest',
         lat: 62.487000,
         lng: 6.293639,
@@ -495,6 +657,7 @@
       },
       {
         id: 19,
+		showOnMap: true,
         name: 'Schollenpunkt',
         lat: 62.488111,
         lng: 6.187639,
@@ -508,6 +671,7 @@
       },
       {
         id: 20,
+		showOnMap: true,
         name: 'Rinne / Schellfisch / Köhler / Dorsch',
         lat: 62.514626,
         lng: 6.459914,
@@ -521,6 +685,7 @@
       },
       {
         id: 21,
+		showOnMap: true,
         name: 'Fahrrinne >100 m',
         lat: 62.592639,
         lng: 6.256722,
@@ -533,6 +698,13 @@
         long: 'Fahrrinne über 100 m, gezielt nutzen.'
       }
     ];
+
+    function iconColor(type){
+      if(type === 'plattfisch') return '#66d9ef';
+      if(type === 'makrele') return '#8dffb3';
+      if(type === 'dorsch') return '#ffcb66';
+      return '#ff7a7a';
+    }
 
     function iconSvg(type, color = iconColor(type)){
       if(type === 'plattfisch') return `
@@ -563,28 +735,43 @@
         </svg>`;
     }
 
-    function iconColor(type){
-      if(type === 'plattfisch') return '#66d9ef';
-      if(type === 'makrele') return '#8dffb3';
-      if(type === 'dorsch') return '#ffcb66';
-      return '#ff7a7a';
-    }
+ function makeIcon(type, selected=false, disabled=false){
+  const color = iconColor(type);
+const opacity = disabled ? 0.55 : 1;
+const filter = disabled ? 'grayscale(1) brightness(3.4)' : 'none';
 
-    function makeIcon(type, selected=false){
-      const color = iconColor(type);
-      return L.divIcon({
-        className: '',
-        html: `<div style="width:${selected ? 56 : 50}px;height:${selected ? 56 : 50}px;display:grid;place-items:center;border-radius:18px;background:rgba(7,17,28,.88);border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);transform:${selected ? 'scale(1.08)' : 'scale(1)'};transition:.15s ease">${iconSvg(type, color)}</div>`,
-        iconSize: [56,56],
-        iconAnchor: [28,28],
-        popupAnchor: [0,-24]
-      });
-    }
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:${selected ? 56 : 50}px;
+        height:${selected ? 56 : 50}px;
+        display:grid;
+        place-items:center;
+        border-radius:18px;
+        background:rgba(7,17,28,.88);
+        border:1px solid rgba(255,255,255,.18);
+        box-shadow:0 10px 30px rgba(0,0,0,.35);
+        transform:${selected ? 'scale(1.08)' : 'scale(1)'};
+        filter:${filter};
+opacity:${opacity};
+        transition:.15s ease
+      ">
+        ${iconSvg(type, color)}
+      </div>`,
+    iconSize: [56,56],
+    iconAnchor: [28,28],
+    popupAnchor: [0,-24]
+  });
+}
 
     const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([62.48, 6.08], 10);
-let userMarker;
-let userAccuracy;
-let userLocation = null;
+
+    let userMarker;
+    let userAccuracy;
+    let userLocation = null;
+    let addSpotMode = false;
+
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
@@ -616,17 +803,6 @@ let userLocation = null;
     satellite.addTo(map);
     depthContours.addTo(map);
 
-    const baseLayers = {
-      'Satellit': satellite,
-      'Satellit + Tiefenkarte': satellite,
-      'Tiefenkarte': osm,
-    };
-
-    const overlayLayers = {
-      'Kartverket Tiefenlage': depth,
-      'Dybdekontur / Kystkontur': depthContours
-    };
-
     L.control.layers({
       'Satellit': satellite,
       'Tiefenkarte': depth,
@@ -635,41 +811,34 @@ let userLocation = null;
       'Tiefenlinien': depth,
       'Konturen & Küste': depthContours
     }, { collapsed: false, position: 'bottomright' }).addTo(map);
-const locateControl = L.control({ position: 'topleft' });
 
-locateControl.onAdd = function () {
+    const locateControl = L.control({ position: 'topleft' });
+    locateControl.onAdd = function () {
+      const btn = L.DomUtil.create('button');
+      btn.innerHTML = '◎';
+      btn.title = 'Mein Standort';
+      btn.style.width = '34px';
+      btn.style.height = '34px';
+      btn.style.border = 'none';
+      btn.style.borderRadius = '10px';
+      btn.style.cursor = 'pointer';
+      btn.style.background = 'rgba(10,17,27,.88)';
+      btn.style.color = '#fff';
+      btn.style.fontSize = '18px';
+      btn.style.boxShadow = '0 4px 12px rgba(0,0,0,.35)';
+      L.DomEvent.disableClickPropagation(btn);
+      btn.onclick = () => {
+        if (userMarker) {
+          map.setView(userMarker.getLatLng(), 14, { animate: true });
+        }
+      };
+      return btn;
+    };
+    locateControl.addTo(map);
 
-  const btn = L.DomUtil.create('button');
-
-  btn.innerHTML = '◎';
-  btn.title = 'Mein Standort';
-
-  btn.style.width = '34px';
-  btn.style.height = '34px';
-  btn.style.border = 'none';
-  btn.style.borderRadius = '10px';
-  btn.style.cursor = 'pointer';
-  btn.style.background = 'rgba(10,17,27,.88)';
-  btn.style.color = '#fff';
-  btn.style.fontSize = '18px';
-  btn.style.boxShadow = '0 4px 12px rgba(0,0,0,.35)';
-
-  L.DomEvent.disableClickPropagation(btn);
-
-  btn.onclick = () => {
-    if (userMarker) {
-      map.setView(userMarker.getLatLng(), 14, {
-        animate: true
-      });
-    }
-  };
-
-  return btn;
-};
-
-locateControl.addTo(map);
     const markers = new Map();
     const routeLines = new Map();
+
     const listNode = document.getElementById('spotList');
     const search = document.getElementById('search');
     const depthFilter = document.getElementById('depthFilter');
@@ -677,6 +846,7 @@ locateControl.addTo(map);
     const visibleCount = document.getElementById('visibleCount');
     const nearestSpot = document.getElementById('nearestSpot');
     const activeType = document.getElementById('activeType');
+
     const detail = {
       title: document.getElementById('detailTitle'),
       desc: document.getElementById('detailDesc'),
@@ -720,19 +890,28 @@ locateControl.addTo(map);
 
     function primaryType(spot){
       if (spot.icon) return spot.icon;
-      const txt = `${spot.name} ${spot.short} ${spot.long} ${spot.fish.join(' ')}`.toLowerCase();
+      const fish = Array.isArray(spot.fish) ? spot.fish : [];
+      const txt = `${spot.name || ''} ${spot.short || ''} ${spot.long || ''} ${fish.join(' ')}`.toLowerCase();
       if (txt.includes('platt') || txt.includes('heilbutt') || txt.includes('scholle')) return 'plattfisch';
       if (txt.includes('makrele')) return 'makrele';
       if (txt.includes('kante') || txt.includes('abbruch')) return 'kante';
       return 'dorsch';
     }
 
+    function safeArr(value){
+      return Array.isArray(value) ? value : [];
+    }
+
     function createSpotCard(spot){
+      const fish = safeArr(spot.fish);
+      const tags = safeArr(spot.tags);
+
       const el = document.createElement('article');
       el.className = 'spot';
       el.dataset.id = spot.id;
       el.dataset.type = primaryType(spot);
-      el.dataset.search = [spot.name, spot.short, spot.long, spot.fish.join(' '), spot.tags.join(' '), spot.depth, spot.drive].join(' ').toLowerCase();
+      el.dataset.search = [spot.name, spot.short, spot.long, fish.join(' '), tags.join(' '), spot.depth, spot.drive].join(' ').toLowerCase();
+
       el.innerHTML = `
         <div class="spotTop">
           <div class="badge" style="color:${iconColor(primaryType(spot))}">${iconSvg(primaryType(spot))}</div>
@@ -743,32 +922,28 @@ locateControl.addTo(map);
         </div>
         <p class="spotMeta" style="margin-top:10px">${spot.short}</p>
         <div class="tags">
-          ${spot.tags.slice(0,3).map(t => `<span class="tag ${/sand|ufer|fishbuddy/i.test(t) ? 'warn' : ''}">${t}</span>`).join('')}
-          <span class="tag alt">${spot.fish[0] || 'Allround'}</span>
+          ${tags.slice(0,3).map(t => `<span class="tag ${/sand|ufer|fishbuddy/i.test(t) ? 'warn' : ''}">${t}</span>`).join('')}
+          <span class="tag alt">${fish[0] || 'Allround'}</span>
         </div>
       `;
-      el.addEventListener('click', () => focusSpot(spot.id, true));
+      el.addEventListener('click', () => focusSpot(Number(spot.id), true));
       return el;
     }
 
-   function popupHtml(spot){
-
-  const distAlesund =
-    haversineKm(
-      { lat: start.lat, lng: start.lng },
-      { lat: spot.lat, lng: spot.lng }
-    ).toFixed(1);
+ function popupHtml(spot){
+  const gmaps = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+  const fish = safeArr(spot.fish);
+  const distAlesund = haversineKm(
+    { lat: start.lat, lng: start.lng },
+    { lat: spot.lat, lng: spot.lng }
+  ).toFixed(1);
 
   const distUser = userLocation
-    ? haversineKm(
-        userLocation,
-        { lat: spot.lat, lng: spot.lng }
-      ).toFixed(1)
+    ? haversineKm(userLocation, { lat: spot.lat, lng: spot.lng }).toFixed(1)
     : '–';
 
   return `
     <div class="popupTitle">${spot.name}</div>
-
     <p class="popupText">${spot.long}</p>
 
     <div style="margin:8px 0;font-size:13px;font-weight:700">
@@ -781,13 +956,19 @@ locateControl.addTo(map);
         <div class="popupK">Tiefe</div>
         <div class="popupV">${spot.depth}</div>
       </div>
-
       <div>
         <div class="popupK">Zielfische</div>
-        <div class="popupV">${spot.fish.join(', ')}</div>
+        <div class="popupV">${fish.join(', ')}</div>
       </div>
-
     </div>
+<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+  <button type="button" onclick="editSpot(${spot.id})" class="btn">✏ Bearbeiten</button>
+  <button type="button" onclick="deleteSpot(${spot.id})" class="btn">🗑 Löschen</button>
+
+  <a href="${gmaps}" target="_blank" rel="noopener noreferrer" class="gmaps-btn">
+    🗺 Maps
+  </a>
+</div>
   `;
 }
 
@@ -796,87 +977,98 @@ locateControl.addTo(map);
       detail.desc.textContent = spot.short;
       detail.coords.textContent = fmtCoord(spot.lat, spot.lng);
       detail.drive.textContent = spot.drive;
-      detail.fish.textContent = spot.fish.join(', ');
+      detail.fish.textContent = safeArr(spot.fish).join(', ');
       detail.depth.textContent = spot.depth;
       nearestSpot.textContent = `${spot.name.replace(/\s+/g,' ').slice(0,22)}…`;
     }
 
     function focusSpot(id, pan=false){
-      const spot = spots.find(s => s.id === id);
+      const spot = spots.find(s => Number(s.id) === Number(id));
       if (!spot) return;
-      const marker = markers.get(id);
+
+      const marker = markers.get(Number(id));
       if (marker){
         marker.openPopup();
         if (pan) map.setView([spot.lat, spot.lng], Math.max(map.getZoom(), 11), { animate: true });
       }
+
       setDetail(spot);
-      [...document.querySelectorAll('.spot')].forEach(n => n.classList.toggle('active', Number(n.dataset.id) === id));
+      document.querySelectorAll('.spot').forEach(n => n.classList.toggle('active', Number(n.dataset.id) === Number(id)));
     }
 
-    function build(){
-      spots.forEach(spot => {
-        const m = L.marker([spot.lat, spot.lng], { icon: makeIcon(primaryType(spot)), riseOnHover: true });
-        m.bindPopup(popupHtml(spot), { maxWidth: 350, autoPanPadding: [20,20] });
-        m.on('click', () => focusSpot(spot.id, false));
-        m.addTo(map);
-        markers.set(spot.id, m);
+    function clearMapArtifacts(){
+      markers.forEach(m => map.removeLayer(m));
+      routeLines.forEach(r => map.removeLayer(r));
+      markers.clear();
+      routeLines.clear();
+    }
 
-        const route = L.polyline([[start.lat, start.lng], [spot.lat, spot.lng]], {
-          color: '#66d9ef',
-          weight: 2.2,
-          opacity: 0.45,
-          dashArray: '8 8',
-          className: 'routeLine'
-        }).addTo(map);
-        routeLines.set(spot.id, route);
+    function addSingleSpot(spot){
+      const marker = L.marker([spot.lat, spot.lng], {
+        icon: makeIcon(primaryType(spot)),
+        riseOnHover: true
       });
 
-      countPoints.textContent = spots.length;
-      updateList();
-      if (spots.length) {
-        const nearest = spots.reduce((best, s) => {
-          const d = haversineKm(start, s);
-          return !best || d < best.d ? { spot: s, d } : best;
-        }, null);
-        nearestSpot.textContent = nearest ? `${nearest.spot.name.slice(0,22)}…` : '–';
-      }
-      fitAll();
-    }
+      marker.bindPopup(popupHtml(spot), { maxWidth: 350, autoPanPadding: [20,20] });
+      marker.on('click', () => focusSpot(spot.id, false));
+      marker.addTo(map);
+      markers.set(Number(spot.id), marker);
 
-    function matchFilter(spot){
-      const q = search.value.trim().toLowerCase();
-      const type = depthFilter.value;
-      const chip = document.querySelector('.chip.active')?.dataset.chip || 'all';
-      const txt = [spot.name, spot.short, spot.long, spot.fish.join(' '), spot.tags.join(' '), spot.depth, spot.drive].join(' ').toLowerCase();
-      const okQ = !q || txt.includes(q);
-      const pType = primaryType(spot);
-      const okType = (type === 'all' || type === pType || (type === 'kante' && pType === 'kante'));
-      const okChip = (chip === 'all' || chip === pType || (chip === 'kante' && pType === 'kante'));
-      return okQ && okType && okChip;
+      const route = L.polyline([[start.lat, start.lng], [spot.lat, spot.lng]], {
+        color: '#66d9ef',
+        weight: 2.2,
+        opacity: 0.45,
+        dashArray: '8 8',
+        className: 'routeLine'
+      }).addTo(map);
+
+      routeLines.set(Number(spot.id), route);
     }
 
     function updateList(){
       listNode.innerHTML = '';
-      const visible = spots.filter(matchFilter);
+
+      const q = search.value.trim().toLowerCase();
+      const type = depthFilter.value;
+      const chip = document.querySelector('.chip.active')?.dataset.chip || 'all';
+
+      const visible = spots.filter(spot => {
+        const fish = safeArr(spot.fish);
+        const tags = safeArr(spot.tags);
+        const txt = [spot.name, spot.short, spot.long, fish.join(' '), tags.join(' '), spot.depth, spot.drive].join(' ').toLowerCase();
+        const okQ = !q || txt.includes(q);
+        const pType = primaryType(spot);
+        const okType = (type === 'all' || type === pType || (type === 'kante' && pType === 'kante'));
+        const okChip = (chip === 'all' || chip === pType || (chip === 'kante' && pType === 'kante'));
+        return okQ && okType && okChip;
+      });
+
       visibleCount.textContent = visible.length;
-      activeType.textContent = typeMap[document.querySelector('.chip.active')?.dataset.chip || 'all'] || 'Alle';
+      activeType.textContent = typeMap[chip] || 'Alle';
 
       visible.forEach(spot => listNode.appendChild(createSpotCard(spot)));
+
       spots.forEach(spot => {
-        const show = visible.some(v => v.id === spot.id);
-        const marker = markers.get(spot.id);
-        const route = routeLines.get(spot.id);
-        if (marker) {
-          const icon = makeIcon(primaryType(spot), show && document.querySelector('.spot.active')?.dataset.id == spot.id);
-          marker.setIcon(icon);
-          if (show) {
-            if (!map.hasLayer(marker)) marker.addTo(map);
-          } else {
-            map.removeLayer(marker);
-          }
+	  const show =
+  spot.showOnMap !== false &&
+  visible.some(v => Number(v.id) === Number(spot.id));
+        const marker = markers.get(Number(spot.id));
+        const route = routeLines.get(Number(spot.id));
+
+        if (marker){
+		const disabled = spot.showOnMap === false;
+const isActive = Number(document.querySelector('.spot.active')?.dataset.id) === Number(spot.id);
+
+marker.setIcon(makeIcon(primaryType(spot), isActive, disabled));
+     if (show){
+  if (!map.hasLayer(marker)) marker.addTo(map);
+} else {
+  if (map.hasLayer(marker)) map.removeLayer(marker);
+}
         }
-        if (route) {
-          if (show) {
+
+        if (route){
+          if (show){
             if (!map.hasLayer(route)) route.addTo(map);
           } else {
             map.removeLayer(route);
@@ -895,15 +1087,185 @@ locateControl.addTo(map);
     }
 
     function fitAll(){
-      const visible = spots.filter(matchFilter);
+      const q = search.value.trim().toLowerCase();
+      const type = depthFilter.value;
+      const chip = document.querySelector('.chip.active')?.dataset.chip || 'all';
+
+      const visible = spots.filter(spot => {
+	  if (spot.showOnMap === false) return false;
+        const fish = safeArr(spot.fish);
+        const tags = safeArr(spot.tags);
+        const txt = [spot.name, spot.short, spot.long, fish.join(' '), tags.join(' '), spot.depth, spot.drive].join(' ').toLowerCase();
+        const okQ = !q || txt.includes(q);
+        const pType = primaryType(spot);
+        const okType = (type === 'all' || type === pType || (type === 'kante' && pType === 'kante'));
+        const okChip = (chip === 'all' || chip === pType || (chip === 'kante' && pType === 'kante'));
+        return okQ && okType && okChip;
+      });
+
       const pts = visible.length ? visible : spots;
+      if (!pts.length) return;
+
       const bounds = L.latLngBounds([[start.lat, start.lng], ...pts.map(s => [s.lat, s.lng])]);
       map.fitBounds(bounds.pad(0.18), { animate: true });
     }
 
-    search.addEventListener('input', updateList);
-    depthFilter.addEventListener('change', updateList);
-    document.getElementById('fitAll').addEventListener('click', fitAll);
+    function build(fit = true){
+      clearMapArtifacts();
+      spots.forEach(addSingleSpot);
+
+      countPoints.textContent = spots.length;
+
+      if (spots.length) {
+        const nearest = spots.reduce((best, s) => {
+          const d = haversineKm(start, s);
+          return !best || d < best.d ? { spot: s, d } : best;
+        }, null);
+        nearestSpot.textContent = nearest ? `${nearest.spot.name.slice(0,22)}…` : '–';
+      } else {
+        nearestSpot.textContent = '–';
+      }
+
+      updateList();
+      if (fit) fitAll();
+    }
+
+    function rebuildAll(fit = false){
+      build(fit);
+    }
+
+    function startLiveLocation() {
+      if (!navigator.geolocation) return;
+
+      navigator.geolocation.watchPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          userLocation = { lat, lng };
+          const accuracy = position.coords.accuracy;
+
+          spots.forEach(spot => {
+            const marker = markers.get(Number(spot.id));
+            if (marker) {
+              marker.setPopupContent(popupHtml(spot));
+            }
+          });
+
+          if (!userMarker) {
+            userMarker = L.circleMarker([lat, lng], {
+              radius: 10,
+              color: '#ffffff',
+              weight: 2,
+              fillColor: '#00a8ff',
+              fillOpacity: 1
+            }).addTo(map);
+
+            userAccuracy = L.circle([lat, lng], {
+              radius: accuracy,
+              color: '#00a8ff',
+              weight: 1,
+              fillOpacity: 0.15
+            }).addTo(map);
+          } else {
+            userMarker.setLatLng([lat, lng]);
+            userAccuracy.setLatLng([lat, lng]);
+            userAccuracy.setRadius(accuracy);
+          }
+        },
+        (err) => {
+          console.log('Standortfehler:', err);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 10000
+        }
+      );
+    }
+
+let editId = null;
+
+window.editSpot = function(id){
+  const spot = spots.find(s => Number(s.id) === Number(id));
+  if (!spot) return;
+
+  editId = id;
+
+  document.getElementById("e_name").value = spot.name || "";
+  document.getElementById("e_short").value = spot.short || "";
+  document.getElementById("e_long").value = spot.long || "";
+  document.getElementById("e_drive").value = spot.drive || "";
+  document.getElementById("e_depth").value = spot.depth || "";
+  document.getElementById("e_fish").value = (spot.fish || []).join(", ");
+  document.getElementById("e_tags").value = (spot.tags || []).join(", ");
+
+  document.getElementById("editModal").style.display = "flex";
+  document.getElementById("e_showOnMap").checked =
+  spot.showOnMap !== false;
+};
+
+window.closeEdit = function(){
+  document.getElementById("editModal").style.display = "none";
+};
+    window.deleteSpot = function(id){
+      if (!confirm('Spot löschen?')) return;
+
+      spots = spots.filter(s => Number(s.id) !== Number(id));
+      rebuildAll(false);
+      updateList();
+    };
+
+    document.getElementById('addSpotBtn').addEventListener('click', () => {
+      addSpotMode = true;
+      alert('Jetzt auf die Karte klicken, um einen neuen Spot anzulegen.');
+    });
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const json = JSON.stringify(spots, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'alesund-spots.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('importBtn').addEventListener('click', () => {
+      document.getElementById('importFile').click();
+    });
+
+    document.getElementById('importFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const imported = JSON.parse(reader.result);
+          if (!Array.isArray(imported)) throw new Error('Import muss ein Array sein');
+
+          spots = imported.map((s, i) => ({
+            id: s.id ?? Date.now() + i,
+            name: s.name ?? 'Unbenannter Spot',
+            lat: Number(s.lat),
+            lng: Number(s.lng),
+            drive: s.drive ?? 'unbekannt',
+            icon: s.icon ?? 'dorsch',
+            fish: safeArr(s.fish),
+            depth: s.depth ?? 'Tiefe?',
+            tags: safeArr(s.tags),
+            short: s.short ?? 'Neuer Spot',
+            long: s.long ?? s.short ?? 'Neuer Spot'
+          }));
+
+          rebuildAll(true);
+        } catch(err){
+          alert('JSON fehlerhaft');
+        }
+      };
+      reader.readAsText(file);
+    });
 
     document.querySelectorAll('.chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -913,73 +1275,494 @@ locateControl.addTo(map);
       });
     });
 
-    build();
+    search.addEventListener('input', updateList);
+    depthFilter.addEventListener('change', updateList);
+    document.getElementById('fitAll').addEventListener('click', fitAll);
 
-	window.addEventListener('load', () => {
-  setTimeout(() => {
-    document.getElementById('splash')?.classList.add('hide');
-    setTimeout(() => {
-      document.getElementById('splash')?.remove();
-    }, 850);
-  }, 1800);
-});
-function startLiveLocation() {
 
-  if (!navigator.geolocation) return;
+    map.on('click', function(e){
+      if (!addSpotMode) return;
+      addSpotMode = false;
 
-  navigator.geolocation.watchPosition(
-    (position) => {
+      const name = prompt('Spotname:');
+      if (!name || !name.trim()) return;
 
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-	  userLocation = { lat, lng };
-	  spots.forEach(spot => {
-  const marker = markers.get(spot.id);
-  if (marker) {
-    marker.setPopupContent(popupHtml(spot));
-  }
-});
-      const accuracy = position.coords.accuracy;
+      const newSpot = {
+        id: Date.now(),
+        name: name.trim(),
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+        drive: 'unbekannte Fahrstrecke',
+        icon: 'dorsch',
+        fish: ['Dorsch'],
+        depth: '-',
+        tags: ['Kante'],
+        short: 'Kurze Spotbeschreibung',
+        long: 'Lange Spotbeschreibung'
+      };
 
-      if (!userMarker) {
+      spots.push(newSpot);
+      rebuildAll(false);
+      focusSpot(newSpot.id, true);
+    });
 
-        userMarker = L.circleMarker([lat, lng], {
-          radius: 10,
-          color: '#ffffff',
-          weight: 2,
-          fillColor: '#00a8ff',
-          fillOpacity: 1
-        }).addTo(map);
+    build(true);
+    startLiveLocation();
 
-        userAccuracy = L.circle([lat, lng], {
-          radius: accuracy,
-          color: '#00a8ff',
-          weight: 1,
-          fillOpacity: 0.15
-        }).addTo(map);
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        document.getElementById('splash')?.classList.add('hide');
+        setTimeout(() => {
+          document.getElementById('splash')?.remove();
+        }, 850);
+      }, 1800);
+    });
+	let currentEditSpot = null;
 
-      } else {
-
-        userMarker.setLatLng([lat, lng]);
-
-        userAccuracy.setLatLng([lat, lng]);
-        userAccuracy.setRadius(accuracy);
-
-      }
-
-    },
-    (err) => {
-      console.log('Standortfehler:', err);
-    },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 5000,
-      timeout: 10000
-    }
-  );
+function closeSpotModal(){
+  document.getElementById("spotModal").style.display = "none";
 }
 
-startLiveLocation();
+function saveSpot(){
+
+  if(!currentEditSpot) return;
+
+  currentEditSpot.name = document.getElementById("f_name").value;
+  currentEditSpot.depth = document.getElementById("f_depth").value;
+  currentEditSpot.drive = document.getElementById("f_drive").value;
+
+  currentEditSpot.lat = Number(document.getElementById("f_lat").value);
+  currentEditSpot.lng = Number(document.getElementById("f_lng").value);
+
+  currentEditSpot.icon = document.getElementById("f_icon").value;
+
+  currentEditSpot.short = document.getElementById("f_short").value;
+  currentEditSpot.long = document.getElementById("f_long").value;
+
+  currentEditSpot.fish = document.getElementById("f_fish").value
+    .split(",").map(s => s.trim()).filter(Boolean);
+
+  currentEditSpot.tags = document.getElementById("f_tags").value
+    .split(",").map(s => s.trim()).filter(Boolean);
+
+  rebuildAll(false);
+  focusSpot(currentEditSpot.id, false);
+  closeSpotModal();
+}
+
   </script>
+  
+  <div id="spotModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;">
+  <div style="width:600px;max-width:95%;margin:40px auto;background:#0d1a2a;padding:20px;border-radius:20px;color:white;">
+    <h2>Spot bearbeiten</h2>
+
+    <input id="f_name" placeholder="Name" style="width:100%;margin:5px 0;">
+    <input id="f_depth" placeholder="Tiefe (zb 22m)" style="width:100%;margin:5px 0;">
+    <input id="f_drive" placeholder="Fahrweg" style="width:100%;margin:5px 0;">
+    <input id="f_lat" placeholder="Latitude" style="width:100%;margin:5px 0;">
+    <input id="f_lng" placeholder="Longitude" style="width:100%;margin:5px 0;">
+    <input id="f_icon" placeholder="Icon (zb kante/makrele/dorsch)" style="width:100%;margin:5px 0;">
+
+    <textarea id="f_short" placeholder="Kurzbeschreibung" style="width:100%;height:70px;margin:5px 0;"></textarea>
+    <textarea id="f_long" placeholder="Langbeschreibung" style="width:100%;height:120px;margin:5px 0;"></textarea>
+
+    <input id="f_fish" placeholder="Zielfische (kommagetrennt)" style="width:100%;margin:5px 0;">
+    <input id="f_tags" placeholder="Tags (kommagetrennt)" style="width:100%;margin:5px 0;">
+
+    <div style="margin-top:15px">
+      <button onclick="saveSpot()">Speichern</button>
+      <button onclick="closeSpotModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+<!-- EDIT MODAL -->
+<div id="editModal" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:99999;
+">
+
+  <div style="
+    background:#0c1724;
+    padding:18px;
+    border-radius:16px;
+    width:320px;
+    color:white;
+  ">
+
+    <h3 style="margin-top:0">Spot bearbeiten</h3>
+<label style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+  <input type="checkbox" id="e_showOnMap">
+  Auf Karte anzeigen
+</label>
+    <input id="e_name" placeholder="Name" style="width:100%;margin-bottom:6px"><br>
+    <input id="e_short" placeholder="Kurzbeschreibung" style="width:100%;margin-bottom:6px"><br>
+    <input id="e_long" placeholder="Langbeschreibung" style="width:100%;margin-bottom:6px"><br>
+    <input id="e_drive" placeholder="Fahrweg" style="width:100%;margin-bottom:6px"><br>
+    <input id="e_depth" placeholder="Tiefe" style="width:100%;margin-bottom:6px"><br>
+    <input id="e_fish" placeholder="Fische (komma)" style="width:100%;margin-bottom:6px"><br>
+    <input id="e_tags" placeholder="Tags (komma)" style="width:100%;margin-bottom:10px"><br>
+
+    <button id="saveEditBtn">Speichern</button>
+    <button onclick="closeEdit()" style="float:right">Abbrechen</button>
+
+  </div>
+  
+  
+</div>
+
+<script>
+document.getElementById("saveEditBtn").addEventListener("click", () => {
+  const spot = spots.find(s => Number(s.id) === Number(editId));
+  if (!spot) return;
+
+  spot.name = document.getElementById("e_name").value;
+  spot.short = document.getElementById("e_short").value;
+  spot.long = document.getElementById("e_long").value;
+  spot.drive = document.getElementById("e_drive").value;
+  spot.depth = document.getElementById("e_depth").value;
+
+  spot.fish = document.getElementById("e_fish").value
+    .split(",").map(x => x.trim()).filter(Boolean);
+
+  spot.tags = document.getElementById("e_tags").value
+    .split(",").map(x => x.trim()).filter(Boolean);
+
+  spot.showOnMap = document.getElementById("e_showOnMap").checked;
+
+  rebuildAll(false);
+  closeEdit();
+});
+</script>
+
+<button id="liveToggle" class="liveToggle" title="Live-Daten öffnen">❯</button>
+
+<section id="livePanel" class="livePanel" aria-hidden="true">
+  <div class="liveTop">
+    <div>
+      <div class="eyebrow">Live Ålesund</div>
+      <h2 class="liveTitle">Wind, Strömung, Wellen, Tide</h2>
+    </div>
+    <button id="liveClose" class="btn">✕</button>
+  </div>
+
+  <div class="liveGrid">
+    <div class="liveCard" id="boxWind"></div>
+    <div class="liveCard" id="boxCurrent"></div>
+    <div class="liveCard" id="boxWave"></div>
+    <div class="liveCard" id="boxTide"></div>
+  </div>
+
+  <div class="liveCard wide" id="boxBite"></div>
+  <div class="liveCard wide" id="boxBestTimes"></div>
+</section>
+
+<script>
+const LIVE = {
+  lat: start.lat,
+  lon: start.lng,
+  tz: 'Europe/Oslo'
+};
+
+const livePanel = document.getElementById('livePanel');
+const liveToggle = document.getElementById('liveToggle');
+const liveClose = document.getElementById('liveClose');
+
+const boxWind = document.getElementById('boxWind');
+const boxCurrent = document.getElementById('boxCurrent');
+const boxWave = document.getElementById('boxWave');
+const boxTide = document.getElementById('boxTide');
+const boxBite = document.getElementById('boxBite');
+const boxBestTimes = document.getElementById('boxBestTimes');
+
+function toLocalISO(date){
+  const pad = n => String(n).padStart(2, '0');
+  const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function fmt(n, digits = 1){
+  return Number.isFinite(n) ? Number(n).toFixed(digits) : '–';
+}
+
+function arrow(deg){
+  return `<span class="liveArrow" style="transform:rotate(${deg}deg)">➤</span>`;
+}
+
+function card(dirDeg){
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round((dirDeg % 360) / 45) % 8];
+}
+
+function nearestPoint(points, targetMs){
+  let best = null;
+  for (const p of points){
+    const d = Math.abs(p.time - targetMs);
+    if (!best || d < best.d) best = { ...p, d };
+  }
+  return best;
+}
+
+function extrema(points){
+  const out = [];
+  for (let i = 1; i < points.length - 1; i++){
+    const a = points[i-1], b = points[i], c = points[i+1];
+    if (b.value > a.value && b.value > c.value) out.push({ ...b, kind: 'Hochwasser' });
+    if (b.value < a.value && b.value < c.value) out.push({ ...b, kind: 'Ebbe' });
+  }
+  return out;
+}
+
+function scoreBite({ windSpeed, waveHeight, currentSpeed, minutesToTideTurn }){
+  let score = 100;
+  if (windSpeed < 2) score -= 10;
+  else if (windSpeed <= 12) score += 10;
+  else score -= Math.min(30, (windSpeed - 12) * 4);
+
+  if (waveHeight > 1.8) score -= 28;
+  else if (waveHeight > 1.2) score -= 12;
+  else if (waveHeight >= 0.3) score += 8;
+
+  if (currentSpeed > 2.5) score -= 22;
+  else if (currentSpeed >= 0.3 && currentSpeed <= 1.8) score += 10;
+
+  if (minutesToTideTurn <= 60) score += 14;
+  else if (minutesToTideTurn <= 120) score += 8;
+  else if (minutesToTideTurn <= 240) score += 3;
+
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+function scoreClass(score){
+  if (score >= 75) return 'good';
+  if (score >= 50) return 'mid';
+  return 'bad';
+}
+
+function scoreLabel(score){
+  if (score >= 75) return 'sehr gut';
+  if (score >= 50) return 'okay';
+  return 'schwach';
+}
+
+async function fetchXML(url){
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Tide fetch failed: ${res.status}`);
+  const text = await res.text();
+  return new DOMParser().parseFromString(text, 'application/xml');
+}
+
+async function fetchJSON(url){
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`JSON fetch failed: ${res.status}`);
+  return res.json();
+}
+
+function openLive(){
+  livePanel.classList.add('open');
+  livePanel.setAttribute('aria-hidden', 'false');
+  liveToggle.textContent = '❮';
+  document.body.style.overflow = 'hidden';
+  refreshLiveData();
+}
+
+function closeLive(){
+  livePanel.classList.remove('open');
+  livePanel.setAttribute('aria-hidden', 'true');
+  liveToggle.textContent = '❯';
+  document.body.style.overflow = '';
+}
+
+liveToggle.addEventListener('click', () => {
+  if (livePanel.classList.contains('open')) closeLive();
+  else openLive();
+});
+
+liveClose.addEventListener('click', closeLive);
+
+async function refreshLiveData(){
+  try{
+    boxWind.innerHTML = 'Lade Wind…';
+    boxCurrent.innerHTML = 'Lade Strömung…';
+    boxWave.innerHTML = 'Lade Wellen…';
+    boxTide.innerHTML = 'Lade Tide…';
+    boxBite.innerHTML = 'Lade Beißindex…';
+    boxBestTimes.innerHTML = 'Lade beste Zeiten…';
+const from = toLocalISO(new Date(Date.now() - 2 * 3600 * 1000));
+const to = toLocalISO(new Date(Date.now() + 18 * 3600 * 1000));
+
+const weatherUrl =
+  `https://api.open-meteo.com/v1/forecast?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
+  `&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
+  `&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
+  `&wind_speed_unit=kmh&timezone=${encodeURIComponent(LIVE.tz)}`;
+
+const marineUrl =
+  `https://marine-api.open-meteo.com/v1/marine?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
+  `&current=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
+  `&hourly=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
+  `&length_unit=metric&timezone=${encodeURIComponent(LIVE.tz)}`;
+
+const tideUrl =
+  `https://vannstand.kartverket.no/tideapi.php?lat=${LIVE.lat}&lon=${LIVE.lon}` +
+  `&fromtime=${encodeURIComponent(from)}&totime=${encodeURIComponent(to)}` +
+  `&datatype=all&interval=10&dst=1&tzone=1&refcode=cd&file=xml&lang=en&tide_request=locationdata`;
+
+const [tideXml, weather, marine] = await Promise.all([
+  fetchXML(tideUrl),
+  fetchJSON(weatherUrl),
+  fetchJSON(marineUrl)
+]);
+console.log(tideXml);
+console.log(tideXml.querySelectorAll('waterlevel').length);
+const tideSeries = [...tideXml.querySelectorAll('waterlevel')]
+  .map(el => ({
+    time: Date.parse(el.getAttribute('time')),
+    value: Number(el.getAttribute('value')),
+    flag: el.getAttribute('flag') || ''
+  }))
+  .filter(p => Number.isFinite(p.time) && Number.isFinite(p.value))
+  .sort((a, b) => a.time - b.time);
+
+if (!tideSeries.length) {
+
+  boxTide.innerHTML = `
+    <div class="liveK">Tide / Wasserstand</div>
+    <div class="liveSmall">
+      Zurzeit keine Tide-Daten verfügbar.
+    </div>
+  `;
+
+  return;
+}
+    const tideNow = nearestPoint(tideSeries, Date.now());
+    const tideExt = extrema(tideSeries).filter(x => x.time > Date.now());
+    const nextTurn = tideExt[0] || null;
+    const nextHigh = tideExt.find(x => x.kind === 'Hochwasser') || null;
+    const nextLow = tideExt.find(x => x.kind === 'Ebbe') || null;
+
+    const wNow = weather.current;
+    const mNow = marine.current;
+
+    const windSpeed = Number(wNow.wind_speed_10m);
+    const windDir = Number(wNow.wind_direction_10m);
+    const windGust = Number(wNow.wind_gusts_10m);
+
+    const waveHeight = Number(mNow.wave_height);
+    const waveDir = Number(mNow.wave_direction);
+    const currentSpeed = Number(mNow.ocean_current_velocity);
+    const currentDir = Number(mNow.ocean_current_direction);
+    const seaLevel = Number(mNow.sea_level_height_msl);
+
+    const minutesToTideTurn = nextTurn
+      ? Math.round(Math.abs(nextTurn.time - Date.now()) / 60000)
+      : 999;
+
+    const bite = scoreBite({
+      windSpeed,
+      waveHeight,
+      currentSpeed,
+      minutesToTideTurn
+    });
+
+    const nextHours = (weather.hourly?.time || []).slice(0, 12).map((t, i) => {
+      const time = new Date(t).getTime();
+      const turnAtTime = extrema(tideSeries).find(x => Math.abs(x.time - time) <= 90 * 60000) || null;
+
+      const s = scoreBite({
+        windSpeed: Number(weather.hourly.wind_speed_10m?.[i] ?? windSpeed),
+        waveHeight: Number(marine.hourly.wave_height?.[i] ?? waveHeight),
+        currentSpeed: Number(marine.hourly.ocean_current_velocity?.[i] ?? currentSpeed),
+        minutesToTideTurn: turnAtTime ? Math.abs(turnAtTime.time - time) / 60000 : 999
+      });
+
+      return {
+        label: new Date(time).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        score: s
+      };
+    }).sort((a, b) => b.score - a.score).slice(0, 3);
+
+    boxWind.innerHTML = `
+      <div class="liveK">Wind</div>
+      <div class="liveRow">
+        <div class="liveV">${fmt(windSpeed, 0)} km/h</div>
+        <div>${arrow(windDir)} ${card(windDir)}</div>
+      </div>
+      <div class="liveSmall">Böen: ${fmt(windGust, 0)} km/h</div>
+    `;
+
+    boxCurrent.innerHTML = `
+      <div class="liveK">Strömung</div>
+      <div class="liveRow">
+        <div class="liveV">${fmt(currentSpeed, 1)} km/h</div>
+        <div>${arrow(currentDir)} ${card(currentDir)}</div>
+      </div>
+      <div class="liveSmall">Richtung: ${card(currentDir)}</div>
+    `;
+
+    boxWave.innerHTML = `
+      <div class="liveK">Wellen</div>
+      <div class="liveRow">
+        <div class="liveV">${fmt(waveHeight, 1)} m</div>
+        <div>${arrow(waveDir)} ${card(waveDir)}</div>
+      </div>
+      <div class="liveSmall">Meeresspiegel: ${fmt(seaLevel, 2)} m</div>
+    `;
+
+    boxTide.innerHTML = `
+      <div class="liveK">Tide / Wasserstand</div>
+      <div class="liveRow">
+        <div class="liveV">${tideNow ? fmt(tideNow.value, 0) + ' cm' : '–'}</div>
+        <div>${nextTurn ? nextTurn.kind : '–'}</div>
+      </div>
+      <div class="liveSmall">
+        Nächste Flut: ${nextHigh ? new Date(nextHigh.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}<br>
+        Nächste Ebbe: ${nextLow ? new Date(nextLow.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}
+      </div>
+    `;
+
+    boxBite.innerHTML = `
+      <div class="liveK">Beißindex</div>
+      <div class="liveRow">
+        <div class="liveV score ${scoreClass(bite)}">${bite}/100</div>
+        <div class="score ${scoreClass(bite)}">${scoreLabel(bite)}</div>
+      </div>
+      <div class="liveSmall">
+        Kombiniert aus Wind, Wellen, Strömung und Tidewechsel.
+      </div>
+    `;
+
+    boxBestTimes.innerHTML = `
+      <div class="liveK">Beste Angelzeiten</div>
+      <div class="bestList">
+        ${nextHours.map(x => `
+          <div class="bestItem">
+            <span>${x.label}</span>
+            <strong>${x.score}/100</strong>
+          </div>
+        `).join('')}
+      </div>
+      <div class="liveSmall">Die besten 3 Stunden für Ålesund, laufend neu berechnet.</div>
+    `;
+  } catch (err){
+    boxWind.innerHTML = 'Live-Daten nicht geladen.';
+    boxCurrent.innerHTML = 'Live-Daten nicht geladen.';
+    boxWave.innerHTML = 'Live-Daten nicht geladen.';
+    boxTide.innerHTML = `Live-Daten nicht geladen: ${err.message}`;
+    boxBite.innerHTML = 'Live-Daten nicht geladen.';
+    boxBestTimes.innerHTML = 'Live-Daten nicht geladen.';
+    console.error(err);
+  }
+}
+
+setInterval(() => {
+  if (livePanel.classList.contains('open')) refreshLiveData();
+}, 10 * 60 * 1000);
+</script>
+
 </body>
 </html>
