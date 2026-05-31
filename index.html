@@ -584,6 +584,7 @@
     const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([62.48, 6.08], 10);
 let userMarker;
 let userAccuracy;
+let userLocation = null;
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
@@ -750,18 +751,45 @@ locateControl.addTo(map);
       return el;
     }
 
-    function popupHtml(spot){
-      return `
-        <div class="popupTitle">${spot.name}</div>
-        <p class="popupText">${spot.long}</p>
-        <div class="popupGrid">
-          <div><div class="popupK">Fahrweg</div><div class="popupV">${spot.drive}</div></div>
-          <div><div class="popupK">Tiefe</div><div class="popupV">${spot.depth}</div></div>
-          <div><div class="popupK">Zielfische</div><div class="popupV">${spot.fish.join(', ')}</div></div>
-          <div><div class="popupK">Koordinate</div><div class="popupV">${fmtCoord(spot.lat, spot.lng)}</div></div>
-        </div>
-      `;
-    }
+   function popupHtml(spot){
+
+  const distAlesund =
+    haversineKm(
+      { lat: start.lat, lng: start.lng },
+      { lat: spot.lat, lng: spot.lng }
+    ).toFixed(1);
+
+  const distUser = userLocation
+    ? haversineKm(
+        userLocation,
+        { lat: spot.lat, lng: spot.lng }
+      ).toFixed(1)
+    : '–';
+
+  return `
+    <div class="popupTitle">${spot.name}</div>
+
+    <p class="popupText">${spot.long}</p>
+
+    <div style="margin:8px 0;font-size:13px;font-weight:700">
+      v. Ålesund: ${distAlesund} km<br>
+      v. Standort: ${distUser} km
+    </div>
+
+    <div class="popupGrid">
+      <div>
+        <div class="popupK">Tiefe</div>
+        <div class="popupV">${spot.depth}</div>
+      </div>
+
+      <div>
+        <div class="popupK">Zielfische</div>
+        <div class="popupV">${spot.fish.join(', ')}</div>
+      </div>
+
+    </div>
+  `;
+}
 
     function setDetail(spot){
       detail.title.textContent = spot.name;
@@ -904,6 +932,13 @@ function startLiveLocation() {
 
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
+	  userLocation = { lat, lng };
+	  spots.forEach(spot => {
+  const marker = markers.get(spot.id);
+  if (marker) {
+    marker.setPopupContent(popupHtml(spot));
+  }
+});
       const accuracy = position.coords.accuracy;
 
       if (!userMarker) {
