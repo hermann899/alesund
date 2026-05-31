@@ -582,7 +582,8 @@
     }
 
     const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([62.48, 6.08], 10);
-
+let userMarker;
+let userAccuracy;
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
@@ -862,6 +863,59 @@
     }, 850);
   }, 1800);
 });
+function startLiveLocation() {
+
+  if (!navigator.geolocation) return;
+
+  navigator.geolocation.watchPosition(
+    (position) => {
+
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const accuracy = position.coords.accuracy;
+
+      if (!userMarker) {
+
+        userMarker = L.circleMarker([lat, lng], {
+          radius: 10,
+          color: '#ffffff',
+          weight: 2,
+          fillColor: '#00a8ff',
+          fillOpacity: 1
+        }).addTo(map);
+
+        userAccuracy = L.circle([lat, lng], {
+          radius: accuracy,
+          color: '#00a8ff',
+          weight: 1,
+          fillOpacity: 0.15
+        }).addTo(map);
+if (!window.locationCentered) {
+  map.setView([lat, lng], 13);
+  window.locationCentered = true;
+}
+      } else {
+
+        userMarker.setLatLng([lat, lng]);
+
+        userAccuracy.setLatLng([lat, lng]);
+        userAccuracy.setRadius(accuracy);
+
+      }
+
+    },
+    (err) => {
+      console.log('Standortfehler:', err);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 5000,
+      timeout: 10000
+    }
+  );
+}
+
+startLiveLocation();
   </script>
 </body>
 </html>
