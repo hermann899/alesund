@@ -176,9 +176,14 @@
 </div>
   <div class="app">
     <aside class="sidebar">
-      <div class="hero">
-        <div class="eyebrow">🎣 Ålesund · Angelkarte</div>
-        <h1></h1>
+<div class="hero">
+  <div class="eyebrow">🎣 Ålesund Angelkarte</div>
+
+  <div class="scrollHint">
+    <span>↓</span>
+    <small>Scrollmenü</small>
+  </div>
+
         <p class="subtitle">
           Klickbare Punkte mit kurzer Beschreibung, Distanz ab Ålesund mit Boot
         </p>
@@ -231,7 +236,7 @@
 
       <div class="footerNote">
         <div class="hint"><span class="miniDot"></span></div>
-        <p style="margin-top:12px"></p>
+        <p style="margin-top:12px">made by H. Hummelkrause</p>
       </div>
     </aside>
 
@@ -240,10 +245,10 @@
       <div class="mapChrome">
         <div class="pill">Start: Ålesund</div>
         <div class="legendBox">
-          <div class="legendItem"><span class="legendDot kante"></span>Abbruchkante</div>
+          <div class="legendItem"><span class="legendDot kante"></span>kante</div>
           <div class="legendItem"><span class="legendDot dorsch"></span>Dorsch</div>
           <div class="legendItem"><span class="legendDot makrele"></span>Makrele</div>
-          <div class="legendItem"><span class="legendDot plattfisch"></span>Plattfisch</div>
+          <div class="legendItem"><span class="legendDot plattfisch"></span>Plattf.</div>
         </div>
       </div>
     </main>
@@ -504,8 +509,8 @@
       {
         id: 20,
         name: 'Rinne / Schellfisch / Köhler / Dorsch',
-        lat: 62.581306,
-        lng: 6.426583,
+        lat: 62.514626,
+        lng: 6.459914,
         drive: '18 km Fahrweg',
         icon: 'dorsch',
         fish: ['Schellfisch', 'Köhler', 'Dorsch'],
@@ -818,8 +823,6 @@
         }
       });
 
-      const first = visible[0];
-      if (first && !document.querySelector('.spot.active')) focusSpot(first.id, false);
       if (!visible.length) {
         detail.title.textContent = 'Keine Treffer';
         detail.desc.textContent = 'Passe Suche oder Filter an.';
@@ -851,8 +854,6 @@
 
     build();
 
-    // Default: erster sehr naher Spot markieren.
-    focusSpot(19, false);
 	window.addEventListener('load', () => {
   setTimeout(() => {
     document.getElementById('splash')?.classList.add('hide');
