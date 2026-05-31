@@ -922,10 +922,7 @@ function startLiveLocation() {
           weight: 1,
           fillOpacity: 0.15
         }).addTo(map);
-if (!window.locationCentered) {
-  map.setView([lat, lng], 13);
-  window.locationCentered = true;
-}
+
       } else {
 
         userMarker.setLatLng([lat, lng]);
