@@ -1499,15 +1499,6 @@ function card(dirDeg){
   return dirs[Math.round((dirDeg % 360) / 45) % 8];
 }
 
-function parseTideXml(xmlDoc){
-  return [...xmlDoc.querySelectorAll('waterlevel')]
-    .map(n => ({
-      time: new Date(n.getAttribute('time')).getTime(),
-      value: Number(n.getAttribute('value'))
-    }))
-    .filter(x => Number.isFinite(x.time) && Number.isFinite(x.value))
-    .sort((a,b) => a.time - b.time);
-}
 
 function nearestPoint(points, targetMs){
   let best = null;
@@ -1573,6 +1564,38 @@ async function fetchJSON(url){
   return res.json();
 }
 
+async function fetchHTML(url){
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTML fetch failed: ${res.status}`);
+  return res.text();
+}
+
+function parseTidesToday(html){
+  const text = html.replace(/\s+/g, ' ');
+
+  const parseBlock = (re) => {
+    const m = text.match(re);
+    if (!m) return null;
+
+    const when = m[1].trim();
+    const heightM = Number(m[2]);
+    const status = (m[3] || '').trim();
+
+    return {
+      when,
+      time: Date.parse(when),
+      heightM,
+      status
+    };
+  };
+
+  return {
+    current: parseBlock(/What's the current tide for\s+Ålesund\?\s+([\s\S]*?)\s+Height\s+([\d.]+)m(?:\s*\([^)]+\))?\s*([A-Za-z]+)?/i),
+    nextHigh: parseBlock(/When's the next high tide for\s+Ålesund\?\s+([\s\S]*?)\s+Height\s+([\d.]+)m/i),
+    nextLow: parseBlock(/When's the next low tide for\s+Ålesund\?\s+([\s\S]*?)\s+Height\s+([\d.]+)m/i)
+  };
+}
+
 function openLive(){
   livePanel.classList.add('open');
   livePanel.setAttribute('aria-hidden', 'false');
@@ -1624,18 +1647,27 @@ async function refreshLiveData(){
       `&hourly=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
       `&length_unit=metric&timezone=${encodeURIComponent(LIVE.tz)}`;
 
-    const [tideXml, weather, marine] = await Promise.all([
-      fetchXML(tideUrl),
-      fetchJSON(weatherUrl),
-      fetchJSON(marineUrl)
-    ]);
+const weather = await fetchJSON(weatherUrl);
+console.log("Hole Tide HTML...");
+const marine = await fetchJSON(marineUrl);
+const tide = {
+  current: null,
+  nextHigh: null,
+  nextLow: null
+};
+console.log(tideHtml);
+const tideNow = tide.current;
+const nextHigh = tide.nextHigh;
+const nextLow = tide.nextLow;
 
-    const tideSeries = parseTideXml(tideXml);
-    const tideNow = nearestPoint(tideSeries, Date.now());
-    const tideExt = extrema(tideSeries).filter(x => x.time > Date.now());
-    const nextTurn = tideExt[0] || null;
-    const nextHigh = tideExt.find(x => x.kind === 'Hochwasser') || null;
-    const nextLow = tideExt.find(x => x.kind === 'Ebbe') || null;
+const tideCandidates = [nextHigh, nextLow]
+  .filter(x => x && Number.isFinite(x.time) && x.time > Date.now())
+  .sort((a, b) => a.time - b.time);
+
+const nextTurn = tideCandidates[0] || null;
+const minutesToTideTurn = nextTurn
+  ? Math.round(Math.abs(nextTurn.time - Date.now()) / 60000)
+  : 999;
 
     const wNow = weather.current;
     const mNow = marine.current;
@@ -1650,9 +1682,7 @@ async function refreshLiveData(){
     const currentDir = Number(mNow.ocean_current_direction);
     const seaLevel = Number(mNow.sea_level_height_msl);
 
-    const minutesToTideTurn = nextTurn
-      ? Math.round(Math.abs(nextTurn.time - Date.now()) / 60000)
-      : 999;
+   
 
     const bite = scoreBite({
       windSpeed,
@@ -1663,13 +1693,12 @@ async function refreshLiveData(){
 
     const nextHours = (weather.hourly?.time || []).slice(0, 12).map((t, i) => {
       const time = new Date(t).getTime();
-      const turnAtTime = extrema(tideSeries).find(x => Math.abs(x.time - time) <= 90 * 60000) || null;
 
       const s = scoreBite({
         windSpeed: Number(weather.hourly.wind_speed_10m?.[i] ?? windSpeed),
         waveHeight: Number(marine.hourly.wave_height?.[i] ?? waveHeight),
         currentSpeed: Number(marine.hourly.ocean_current_velocity?.[i] ?? currentSpeed),
-        minutesToTideTurn: turnAtTime ? Math.abs(turnAtTime.time - time) / 60000 : 999
+        minutesToTideTurn: nextTurn  ? Math.abs(nextTurn.time - time) / 60000  : 999
       });
 
       return {
@@ -1706,16 +1735,18 @@ async function refreshLiveData(){
     `;
 
     boxTide.innerHTML = `
-      <div class="liveK">Tide / Wasserstand</div>
-      <div class="liveRow">
-        <div class="liveV">${tideNow ? fmt(tideNow.value, 0) + ' cm' : '–'}</div>
-        <div>${nextTurn ? nextTurn.kind : '–'}</div>
-      </div>
-      <div class="liveSmall">
-        Nächste Flut: ${nextHigh ? new Date(nextHigh.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}<br>
-        Nächste Ebbe: ${nextLow ? new Date(nextLow.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}
-      </div>
-    `;
+  <div class="liveK">Tide / Wasserstand</div>
+  <div class="liveRow">
+    <div class="liveV">
+      ${tideNow ? fmt(tideNow.heightM, 2) + ' m' : '–'}
+    </div>
+    <div>${nextTurn ? (nextTurn === nextHigh ? 'Hochwasser' : 'Ebbe') : '–'}</div>
+  </div>
+  <div class="liveSmall">
+    Nächste Flut: ${nextHigh ? new Date(nextHigh.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}<br>
+    Nächste Ebbe: ${nextLow ? new Date(nextLow.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}
+  </div>
+`;
 
     boxBite.innerHTML = `
       <div class="liveK">Beißindex</div>
