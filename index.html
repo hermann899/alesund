@@ -634,7 +634,39 @@ let userAccuracy;
       'Tiefenlinien': depth,
       'Konturen & Küste': depthContours
     }, { collapsed: false, position: 'bottomright' }).addTo(map);
+const locateControl = L.control({ position: 'topleft' });
 
+locateControl.onAdd = function () {
+
+  const btn = L.DomUtil.create('button');
+
+  btn.innerHTML = '◎';
+  btn.title = 'Mein Standort';
+
+  btn.style.width = '34px';
+  btn.style.height = '34px';
+  btn.style.border = 'none';
+  btn.style.borderRadius = '10px';
+  btn.style.cursor = 'pointer';
+  btn.style.background = 'rgba(10,17,27,.88)';
+  btn.style.color = '#fff';
+  btn.style.fontSize = '18px';
+  btn.style.boxShadow = '0 4px 12px rgba(0,0,0,.35)';
+
+  L.DomEvent.disableClickPropagation(btn);
+
+  btn.onclick = () => {
+    if (userMarker) {
+      map.setView(userMarker.getLatLng(), 14, {
+        animate: true
+      });
+    }
+  };
+
+  return btn;
+};
+
+locateControl.addTo(map);
     const markers = new Map();
     const routeLines = new Map();
     const listNode = document.getElementById('spotList');
