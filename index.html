@@ -1056,17 +1056,21 @@ opacity:${opacity};
         const route = routeLines.get(Number(spot.id));
         const isActive = Number(document.querySelector('.spot.active')?.dataset.id) === Number(spot.id);
 
-        if (marker){
-		const disabled = spot.showOnMap === false;
-const isActive = Number(document.querySelector('.spot.active')?.dataset.id) === Number(spot.id);
+       if (marker) {
+  const disabled = spot.showOnMap === false;
+  const isActive =
+    Number(document.querySelector('.spot.active')?.dataset.id) === Number(spot.id);
 
-marker.setIcon(makeIcon(primaryType(spot), isActive, disabled));
-      if (show){
-  if (!map.hasLayer(marker)) marker.addTo(map);
-} else {
-  if (!map.hasLayer(marker)) marker.addTo(map);
+  marker.setIcon(makeIcon(primaryType(spot), isActive, disabled));
+
+  if (show) {
+    if (!map.hasLayer(marker)) marker.addTo(map);
+    marker.setOpacity(1);
+  } else {
+    if (!map.hasLayer(marker)) marker.addTo(map);
+    marker.setOpacity(0.2); // <- ausgefiltert, aber sichtbar
+  }
 }
-        }
 
         if (route){
           if (show){
