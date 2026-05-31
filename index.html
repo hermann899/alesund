@@ -139,10 +139,10 @@
   <div class="app">
     <aside class="sidebar">
       <div class="hero">
-        <div class="eyebrow">🎣 Ålesund · Angelkarte · Boot · Tiefenkarte</div>
-        <h1>Komplexe Fangkarte mit Symbolen</h1>
+        <div class="eyebrow">🎣 Ålesund · Angelkarte</div>
+        <h1></h1>
         <p class="subtitle">
-          Klickbare Punkte mit kurzer Beschreibung, Distanz ab Ålesund, Bootsfahrweg als Route und Umschaltung zwischen Satellit und Kartverket-Tiefenkarte.
+          Klickbare Punkte mit kurzer Beschreibung, Distanz ab Ålesund mit Boot
         </p>
         <div class="stats">
           <div class="stat"><div class="label">Punkte</div><div class="value" id="countPoints">0</div></div>
@@ -181,26 +181,26 @@
 
       <div class="detail" id="detailBox">
         <h3 id="detailTitle">Punkt auswählen</h3>
-        <p id="detailDesc">Klicke links auf einen Spot oder direkt auf den Marker in der Karte.</p>
+        <p id="detailDesc">Klicke in die Liste oder auf Marker in Karte.</p>
         <div class="grid">
           <div class="kv"><div class="k">Koordinaten</div><div class="v" id="detailCoords">–</div></div>
           <div class="kv"><div class="k">Fahrweg</div><div class="v" id="detailDrive">–</div></div>
           <div class="kv"><div class="k">Zielfische</div><div class="v" id="detailFish">–</div></div>
           <div class="kv"><div class="k">Tiefe</div><div class="v" id="detailDepth">–</div></div>
         </div>
-        <p style="margin-top:10px;color:var(--muted)">Hinweis: Der Bootsfahrweg ist als nachvollziehbare Annäherung vom Startpunkt Ålesund dargestellt.</p>
+        <p style="margin-top:10px;color:var(--muted)"></p>
       </div>
 
       <div class="footerNote">
-        <div class="hint"><span class="miniDot"></span> Die Tiefenkarte nutzt einen Kartverket-WMS-Layer. Satelitenansicht und Tiefenansicht sind unten rechts umschaltbar.</div>
-        <p style="margin-top:12px">Quellenlogik: Symbolwahl folgt den Stichwörtern aus deinen Notizen. „Abbruchkante“ steht für Kanten / Drop-offs, „Plattfisch“ für Scholle / Heilbutt, „Makrele“ für Schwärme im Mittelwasser, „Dorsch“ für klassische Dorschstellen.</p>
+        <div class="hint"><span class="miniDot"></span></div>
+        <p style="margin-top:12px"></p>
       </div>
     </aside>
 
     <main id="mapWrap">
       <div id="map"></div>
       <div class="mapChrome">
-        <div class="pill">Start: Ålesund · Routen als Luftlinien-Anäherung</div>
+        <div class="pill">Start: Ålesund</div>
         <div class="legendBox">
           <div class="legendItem"><span class="legendDot kante"></span>Abbruchkante</div>
           <div class="legendItem"><span class="legendDot dorsch"></span>Dorsch</div>
@@ -551,7 +551,7 @@
     });
 
     const depth = L.tileLayer.wms('https://wms.geonorge.no/skwms1/wms.dybdedata2?', {
-      layers: 'Dybdelag',
+      layers: 'dybdelag',
       format: 'image/png',
       transparent: true,
       version: '1.3.0',
