@@ -1647,30 +1647,23 @@ async function refreshLiveData(){
       `&hourly=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
       `&length_unit=metric&timezone=${encodeURIComponent(LIVE.tz)}`;
 
-const weather = await fetchJSON(weatherUrl);
-console.log("Hole Tide HTML...");
-const marine = await fetchJSON(marineUrl);
-const tide = {
-  current: null,
-  nextHigh: null,
-  nextLow: null
-};
-console.log(tideHtml);
-const tideNow = tide.current;
-const nextHigh = tide.nextHigh;
-const nextLow = tide.nextLow;
+    const weather = await fetchJSON(weatherUrl);
+    const marine = await fetchJSON(marineUrl);
 
-const tideCandidates = [nextHigh, nextLow]
-  .filter(x => x && Number.isFinite(x.time) && x.time > Date.now())
-  .sort((a, b) => a.time - b.time);
+    // ✅ FIX: sichere Current-Fallbacks (WICHTIG)
+    const wNow = weather.current ?? {
+      wind_speed_10m: weather.hourly?.wind_speed_10m?.[0],
+      wind_direction_10m: weather.hourly?.wind_direction_10m?.[0],
+      wind_gusts_10m: weather.hourly?.wind_gusts_10m?.[0]
+    };
 
-const nextTurn = tideCandidates[0] || null;
-const minutesToTideTurn = nextTurn
-  ? Math.round(Math.abs(nextTurn.time - Date.now()) / 60000)
-  : 999;
-
-    const wNow = weather.current;
-    const mNow = marine.current;
+    const mNow = marine.current ?? {
+      wave_height: marine.hourly?.wave_height?.[0],
+      wave_direction: marine.hourly?.wave_direction?.[0],
+      ocean_current_velocity: marine.hourly?.ocean_current_velocity?.[0],
+      ocean_current_direction: marine.hourly?.ocean_current_direction?.[0],
+      sea_level_height_msl: marine.hourly?.sea_level_height_msl?.[0]
+    };
 
     const windSpeed = Number(wNow.wind_speed_10m);
     const windDir = Number(wNow.wind_direction_10m);
@@ -1682,7 +1675,53 @@ const minutesToTideTurn = nextTurn
     const currentDir = Number(mNow.ocean_current_direction);
     const seaLevel = Number(mNow.sea_level_height_msl);
 
-   
+    let tideNow = null;
+    let nextHigh = null;
+    let nextLow = null;
+    let nextTurn = null;
+    let minutesToTideTurn = 999;
+
+    try {
+      const tideXml = await fetchXML(tideUrl);
+
+      const waterNodes = [...tideXml.querySelectorAll('waterlevel')];
+
+      const tidePoints = waterNodes.map(node => ({
+        time: new Date(
+          node.getAttribute('time') ||
+          node.getAttribute('date') ||
+          node.getAttribute('value')
+        ).getTime(),
+        value: Number(node.getAttribute('value') || node.textContent)
+      }))
+      .filter(p => Number.isFinite(p.time))
+      .sort((a,b) => a.time - b.time);
+
+      if (tidePoints.length){
+
+        tideNow = nearestPoint(tidePoints, Date.now());
+
+        const tideExtrema = extrema(tidePoints)
+          .filter(x => x.time > Date.now())
+          .sort((a,b) => a.time - b.time);
+
+        nextHigh = tideExtrema.find(x => x.kind === 'Hochwasser') || null;
+        nextLow  = tideExtrema.find(x => x.kind === 'Ebbe') || null;
+
+        const candidates = [nextHigh, nextLow]
+          .filter(Boolean)
+          .sort((a,b) => a.time - b.time);
+
+        nextTurn = candidates[0] || null;
+
+        if (nextTurn){
+          minutesToTideTurn = Math.round((nextTurn.time - Date.now()) / 60000);
+        }
+      }
+
+    } catch(err){
+      console.warn("Kartverket Tide nicht verfügbar:", err);
+    }
 
     const bite = scoreBite({
       windSpeed,
@@ -1698,7 +1737,7 @@ const minutesToTideTurn = nextTurn
         windSpeed: Number(weather.hourly.wind_speed_10m?.[i] ?? windSpeed),
         waveHeight: Number(marine.hourly.wave_height?.[i] ?? waveHeight),
         currentSpeed: Number(marine.hourly.ocean_current_velocity?.[i] ?? currentSpeed),
-        minutesToTideTurn: nextTurn  ? Math.abs(nextTurn.time - time) / 60000  : 999
+        minutesToTideTurn: nextTurn ? Math.abs(nextTurn.time - time) / 60000 : 999
       });
 
       return {
@@ -1735,18 +1774,18 @@ const minutesToTideTurn = nextTurn
     `;
 
     boxTide.innerHTML = `
-  <div class="liveK">Tide / Wasserstand</div>
-  <div class="liveRow">
-    <div class="liveV">
-      ${tideNow ? fmt(tideNow.heightM, 2) + ' m' : '–'}
-    </div>
-    <div>${nextTurn ? (nextTurn === nextHigh ? 'Hochwasser' : 'Ebbe') : '–'}</div>
-  </div>
-  <div class="liveSmall">
-    Nächste Flut: ${nextHigh ? new Date(nextHigh.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}<br>
-    Nächste Ebbe: ${nextLow ? new Date(nextLow.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}
-  </div>
-`;
+      <div class="liveK">Tide / Wasserstand</div>
+      <div class="liveRow">
+        <div class="liveV">
+          ${tideNow ? fmt(tideNow.value, 2) + ' m' : '–'}
+        </div>
+        <div>${nextTurn ? (nextTurn === nextHigh ? 'Hochwasser' : 'Ebbe') : '–'}</div>
+      </div>
+      <div class="liveSmall">
+        Nächste Flut: ${nextHigh ? new Date(nextHigh.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}<br>
+        Nächste Ebbe: ${nextLow ? new Date(nextLow.time).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }) : '–'}
+      </div>
+    `;
 
     boxBite.innerHTML = `
       <div class="liveK">Beißindex</div>
@@ -1771,6 +1810,7 @@ const minutesToTideTurn = nextTurn
       </div>
       <div class="liveSmall">Die besten 3 Stunden für Ålesund, laufend neu berechnet.</div>
     `;
+
   } catch (err){
     boxWind.innerHTML = 'Live-Daten nicht geladen.';
     boxCurrent.innerHTML = 'Live-Daten nicht geladen.';
