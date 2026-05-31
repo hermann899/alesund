@@ -1500,13 +1500,15 @@ function card(dirDeg){
 }
 
 function parseTideXml(xmlDoc){
-  return [...xmlDoc.querySelectorAll('waterlevel')]
+  const nodes = [...xmlDoc.querySelectorAll('[time][value]')];
+
+  return nodes
     .map(n => ({
-      time: new Date(n.getAttribute('time')).getTime(),
+      time: Date.parse(n.getAttribute('time')),
       value: Number(n.getAttribute('value'))
     }))
     .filter(x => Number.isFinite(x.time) && Number.isFinite(x.value))
-    .sort((a,b) => a.time - b.time);
+    .sort((a, b) => a.time - b.time);
 }
 
 function nearestPoint(points, targetMs){
@@ -1607,10 +1609,10 @@ async function refreshLiveData(){
     const from = toLocalISO(new Date(Date.now() - 2 * 3600 * 1000));
     const to = toLocalISO(new Date(Date.now() + 18 * 3600 * 1000));
 
-    const tideUrl =
-      `https://vannstand.kartverket.no/tideapi.php?lat=${LIVE.lat}&lon=${LIVE.lon}` +
-      `&fromtime=${encodeURIComponent(from)}&totime=${encodeURIComponent(to)}` +
-      `&datatype=all&interval=10&dst=1&tzone=1&refcode=cd&file=xml&lang=en&tide_request=locationdata`;
+  const tideUrl =
+  `https://vannstand.kartverket.no/tideapi.php?lat=${TIDE.lat}&lon=${TIDE.lon}` +
+  `&fromtime=${encodeURIComponent(from)}&totime=${encodeURIComponent(to)}` +
+  `&datatype=all&interval=10&dst=1&tzone=1&refcode=cd&file=xml&lang=en&tide_request=locationdata`;
 
     const weatherUrl =
       `https://api.open-meteo.com/v1/forecast?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
