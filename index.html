@@ -133,9 +133,47 @@
       #mapWrap{order:1}
       #map{height:420px}
     }
+	
+	#splash{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at center, rgba(15,24,38,.92), rgba(3,7,12,.98));
+  backdrop-filter: blur(8px);
+  transition: opacity .8s ease, transform .8s ease;
+}
+
+#splash.hide{
+  opacity: 0;
+  transform: scale(1.02);
+  pointer-events: none;
+}
+
+#splashImg{
+  width: min(78vw, 720px);
+  max-height: 72vh;
+  object-fit: contain;
+  border-radius: 26px;
+  box-shadow: 0 30px 90px rgba(0,0,0,.55);
+  animation: introFloat 3.8s ease-in-out infinite;
+  transform-origin: center;
+  filter: saturate(1.05) contrast(1.02);
+}
+
+@keyframes introFloat{
+  0%   { transform: scale(.92) translateY(12px); opacity: 0; }
+  20%  { opacity: 1; }
+  50%  { transform: scale(1.00) translateY(0px); }
+  100% { transform: scale(1.03) translateY(-6px); opacity: 1; }
+}
   </style>
 </head>
 <body>
+<div id="splash">
+  <img id="splashImg" src="https://i.postimg.cc/VNmVm2RN/Whats-App-Image-2026-05-31-at-11-20-05.jpg" alt="Intro">
+</div>
   <div class="app">
     <aside class="sidebar">
       <div class="hero">
@@ -815,6 +853,14 @@
 
     // Default: erster sehr naher Spot markieren.
     focusSpot(19, false);
+	window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('splash')?.classList.add('hide');
+    setTimeout(() => {
+      document.getElementById('splash')?.remove();
+    }, 850);
+  }, 1800);
+});
   </script>
 </body>
 </html>
