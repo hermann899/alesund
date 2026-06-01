@@ -112,6 +112,54 @@
       pointer-events:auto;background:rgba(10,17,27,.92);backdrop-filter:blur(10px);
       color:#eff6ff;border:1px solid rgba(255,255,255,.10);padding:10px 12px;border-radius:999px;font-size:13px;font-weight:700;box-shadow:var(--shadow)
     }
+
+    .trackBtn{
+      pointer-events:auto;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:rgba(10,17,27,.92);
+      backdrop-filter:blur(10px);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.10);
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:900;
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .trackBtn:hover{ transform:translateY(-1px); border-color:rgba(255,107,139,.4); }
+    .trackBtn.active{
+      background:rgba(255,107,139,.14);
+      border-color:rgba(255,107,139,.55);
+      box-shadow:0 0 0 4px rgba(255,107,139,.08);
+    }
+    .recDot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#ff6b8b;
+      box-shadow:0 0 0 4px rgba(255,107,139,.16);
+      animation:recPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes recPulse{
+      0%,100%{ transform:scale(.92); opacity:.75; }
+      50%{ transform:scale(1.15); opacity:1; }
+    }
+    .trackMeta{
+      pointer-events:auto;
+      background:rgba(10,17,27,.92);
+      backdrop-filter:blur(10px);
+      color:#eff6ff;
+      border:1px solid rgba(255,255,255,.10);
+      padding:10px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:700;
+      box-shadow:var(--shadow)
+    }
     .legendBox{
       pointer-events:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:rgba(10,17,27,.92);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.10);padding:10px 12px;border-radius:18px;box-shadow:var(--shadow)
     }
@@ -388,6 +436,10 @@
       <div id="map"></div>
       <div class="mapChrome">
         <div class="pill">Start: Ålesund</div>
+        <button id="driftTrackBtn" class="trackBtn" type="button" title="Drift-Tracking starten / stoppen">
+          <span class="recDot"></span>
+          REC
+        </button>
         <div class="legendBox">
           <div class="legendItem"><span class="legendDot kante"></span>kante</div>
           <div class="legendItem"><span class="legendDot dorsch"></span>Dorsch</div>
@@ -772,6 +824,18 @@ opacity:${opacity};
     let userLocation = null;
     let addSpotMode = false;
 
+    const DRIFT_STORAGE_KEY = 'alesund_drift_track_v1';
+    const DRIFT_ACTIVE_KEY = 'alesund_drift_tracking_active_v1';
+    const DRIFT_MIN_DISTANCE_M = 8;
+    const DRIFT_MIN_INTERVAL_MS = 10000;
+
+    let driftTrack = [];
+    let driftTrackingActive = false;
+    let driftWatchId = null;
+    let driftLine = null;
+    let driftCurrentMarker = null;
+    let driftLastSavedPointAt = 0;
+
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap'
@@ -872,6 +936,203 @@ opacity:${opacity};
       const lat2 = b.lat * Math.PI / 180;
       const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
       return 2 * R * Math.asin(Math.sqrt(h));
+    }
+
+    function haversineM(a, b) {
+      return haversineKm(a, b) * 1000;
+    }
+
+    function safeStorageGet(key){
+      try { return localStorage.getItem(key); } catch (e) { return null; }
+    }
+
+    function safeStorageSet(key, value){
+      try { localStorage.setItem(key, value); } catch (e) {}
+    }
+
+    function safeStorageRemove(key){
+      try { localStorage.removeItem(key); } catch (e) {}
+    }
+
+    function setDriftButtonState(){
+      const btn = document.getElementById('driftTrackBtn');
+      if (!btn) return;
+      btn.classList.toggle('active', driftTrackingActive);
+      btn.title = driftTrackingActive
+        ? 'Drift-Tracking stoppen'
+        : (driftTrack.length ? 'Drift-Track überschreiben / neu starten' : 'Drift-Tracking starten');
+      btn.innerHTML = driftTrackingActive
+        ? '<span class="recDot"></span> REC'
+        : '<span class="recDot" style="animation:none;opacity:.4;background:#9aa8b8;box-shadow:none"></span> REC';
+    }
+
+    function persistDriftTrack(){
+      safeStorageSet(DRIFT_STORAGE_KEY, JSON.stringify(driftTrack));
+      safeStorageSet(DRIFT_ACTIVE_KEY, driftTrackingActive ? '1' : '0');
+      setDriftButtonState();
+    }
+
+    function ensureDriftLayer(){
+      if (!driftLine) {
+        driftLine = L.polyline([], {
+          color: '#ff6b8b',
+          weight: 4,
+          opacity: 0.92,
+          lineJoin: 'round',
+          lineCap: 'round',
+          className: 'driftLine'
+        }).addTo(map);
+      } else if (!map.hasLayer(driftLine)) {
+        driftLine.addTo(map);
+      }
+
+      if (!driftCurrentMarker) {
+        driftCurrentMarker = L.circleMarker([start.lat, start.lng], {
+          radius: 7,
+          color: '#ffffff',
+          weight: 2,
+          fillColor: '#ff6b8b',
+          fillOpacity: 1
+        }).addTo(map);
+      } else if (!map.hasLayer(driftCurrentMarker)) {
+        driftCurrentMarker.addTo(map);
+      }
+    }
+
+    function renderDriftTrack(){
+      ensureDriftLayer();
+      const latlngs = driftTrack.map(p => [p.lat, p.lng]);
+      driftLine.setLatLngs(latlngs);
+      if (driftTrack.length) {
+        const last = driftTrack[driftTrack.length - 1];
+        driftCurrentMarker.setLatLng([last.lat, last.lng]);
+      }
+      setDriftButtonState();
+    }
+
+    function clearDriftTrack(alsoStorage = true){
+      driftTrack = [];
+      if (driftLine) driftLine.setLatLngs([]);
+      if (driftCurrentMarker && map.hasLayer(driftCurrentMarker)) {
+        map.removeLayer(driftCurrentMarker);
+      }
+      driftCurrentMarker = null;
+      driftLastSavedPointAt = 0;
+      if (alsoStorage) {
+        safeStorageRemove(DRIFT_STORAGE_KEY);
+      }
+      persistDriftTrack();
+    }
+
+    function stopDriftTracking(keepTrack = true){
+      driftTrackingActive = false;
+      if (driftWatchId !== null) {
+        navigator.geolocation.clearWatch(driftWatchId);
+        driftWatchId = null;
+      }
+      if (!keepTrack && driftTrack.length) {
+        clearDriftTrack(true);
+      } else {
+        persistDriftTrack();
+      }
+    }
+
+    function appendDriftPoint(lat, lng, accuracy = null){
+      const point = {
+        lat: Number(lat),
+        lng: Number(lng),
+        accuracy: Number.isFinite(accuracy) ? Number(accuracy) : null,
+        ts: Date.now()
+      };
+
+      const last = driftTrack[driftTrack.length - 1];
+      if (last) {
+        const moved = haversineM(last, point);
+        const waited = point.ts - (last.ts || 0);
+        if (moved < DRIFT_MIN_DISTANCE_M && waited < DRIFT_MIN_INTERVAL_MS) {
+          return false;
+        }
+      }
+
+      driftTrack.push(point);
+      if (!driftCurrentMarker) {
+        ensureDriftLayer();
+      }
+      if (driftCurrentMarker) driftCurrentMarker.setLatLng([point.lat, point.lng]);
+      if (driftLine) driftLine.setLatLngs(driftTrack.map(p => [p.lat, p.lng]));
+      if (!map.hasLayer(driftLine)) driftLine.addTo(map);
+      if (!map.hasLayer(driftCurrentMarker)) driftCurrentMarker.addTo(map);
+      persistDriftTrack();
+      driftLastSavedPointAt = point.ts;
+      return true;
+    }
+
+    function saveDriftTrackToStorage(){
+      persistDriftTrack();
+    }
+
+    function startDriftTracking(forceNew = false){
+      if (!navigator.geolocation) {
+        alert('Geolocation wird von diesem Browser nicht unterstützt.');
+        return;
+      }
+
+      if (driftTrackingActive && !forceNew) return;
+
+      if (!forceNew && driftTrack.length) {
+        const overwrite = confirm('Es existiert bereits ein Track. Soll er überschrieben werden?');
+        if (!overwrite) return;
+        clearDriftTrack(true);
+      }
+
+      driftTrackingActive = true;
+      ensureDriftLayer();
+      persistDriftTrack();
+
+      if (driftWatchId !== null) {
+        navigator.geolocation.clearWatch(driftWatchId);
+        driftWatchId = null;
+      }
+
+      driftWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          appendDriftPoint(latitude, longitude, accuracy);
+        },
+        (err) => {
+          console.log('Drift-Tracking Fehler:', err);
+          stopDriftTracking(true);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 8000,
+          timeout: 15000
+        }
+      );
+    }
+
+    function restoreDriftTrack(){
+      const raw = safeStorageGet(DRIFT_STORAGE_KEY);
+      const activeRaw = safeStorageGet(DRIFT_ACTIVE_KEY);
+      driftTrackingActive = activeRaw === '1';
+
+      try {
+        driftTrack = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(driftTrack)) driftTrack = [];
+      } catch (e) {
+        driftTrack = [];
+      }
+
+      if (driftTrack.length) {
+        ensureDriftLayer();
+        renderDriftTrack();
+      } else {
+        setDriftButtonState();
+      }
+
+      if (driftTrackingActive) {
+        startDriftTracking(true);
+      }
     }
 
     function fmtCoord(lat, lng){
@@ -1201,6 +1462,7 @@ window.editSpot = function(id){
   document.getElementById("e_long").value = spot.long || "";
   document.getElementById("e_drive").value = spot.drive || "";
   document.getElementById("e_depth").value = spot.depth || "";
+  document.getElementById("e_icon").value = spot.icon || primaryType(spot) || "dorsch";
   document.getElementById("e_fish").value = (spot.fish || []).join(", ");
   document.getElementById("e_tags").value = (spot.tags || []).join(", ");
 
@@ -1312,7 +1574,21 @@ window.closeEdit = function(){
     });
 
     build(true);
+    restoreDriftTrack();
     startLiveLocation();
+
+    document.getElementById('driftTrackBtn')?.addEventListener('click', () => {
+      if (driftTrackingActive) {
+        stopDriftTracking(true);
+        return;
+      }
+      startDriftTracking(false);
+      setDriftButtonState();
+    });
+
+    window.addEventListener('beforeunload', () => {
+      persistDriftTrack();
+    });
 
     window.addEventListener('load', () => {
       setTimeout(() => {
@@ -1409,6 +1685,12 @@ function saveSpot(){
     <input id="e_long" placeholder="Langbeschreibung" style="width:100%;margin-bottom:6px"><br>
     <input id="e_drive" placeholder="Fahrweg" style="width:100%;margin-bottom:6px"><br>
     <input id="e_depth" placeholder="Tiefe" style="width:100%;margin-bottom:6px"><br>
+    <select id="e_icon" style="width:100%;margin-bottom:6px">
+      <option value="kante">Marker: Kante</option>
+      <option value="dorsch">Marker: Dorsch</option>
+      <option value="plattfisch">Marker: Plattfisch</option>
+      <option value="makrele">Marker: Makrele</option>
+    </select><br>
     <input id="e_fish" placeholder="Fische (komma)" style="width:100%;margin-bottom:6px"><br>
     <input id="e_tags" placeholder="Tags (komma)" style="width:100%;margin-bottom:10px"><br>
 
@@ -1430,6 +1712,7 @@ document.getElementById("saveEditBtn").addEventListener("click", () => {
   spot.long = document.getElementById("e_long").value;
   spot.drive = document.getElementById("e_drive").value;
   spot.depth = document.getElementById("e_depth").value;
+  spot.icon = document.getElementById("e_icon").value;
 
   spot.fish = document.getElementById("e_fish").value
     .split(",").map(x => x.trim()).filter(Boolean);
