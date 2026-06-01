@@ -360,6 +360,145 @@
   .liveGrid{ grid-template-columns:1fr; }
 }
 	
+  
+    .liveCard.wide{
+      grid-column: 1 / -1;
+      margin-top: 12px;
+    }
+
+    .scoreWrap{
+      display:grid;
+      gap:12px;
+    }
+
+    .scoreHeadline{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .scoreBig{
+      font-size:34px;
+      font-weight:900;
+      line-height:1;
+      letter-spacing:-.03em;
+    }
+
+    .scoreSub{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+      max-width:72ch;
+    }
+
+    .scoreBars{
+      display:grid;
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .scoreBar{
+      padding:10px 12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    .scoreBarLabel{
+      color:var(--muted);
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin-bottom:6px;
+    }
+
+    .scoreBarTrack{
+      height:8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+
+    .scoreBarFill{
+      height:100%;
+      border-radius:999px;
+      background:linear-gradient(90deg, rgba(102,217,239,.95), rgba(141,255,179,.95));
+      width:0%;
+    }
+
+    .scoreBarValue{
+      margin-top:7px;
+      font-size:15px;
+      font-weight:800;
+    }
+
+    .chartWrap{
+      display:grid;
+      gap:10px;
+    }
+
+    .chartHeader{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .chartLegend{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .legendPill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 10px;
+      border-radius:999px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+    }
+
+    .legendMiniDot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:var(--accent);
+    }
+
+    .catchChart{
+      width:100%;
+      height:240px;
+      display:block;
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid rgba(255,255,255,.07);
+    }
+
+    .chartFooter{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .trendText{
+      font-weight:800;
+      color:#fff;
+    }
+
+    @media (max-width: 900px){
+      .scoreBars{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+
   </style>
 </head>
 <body>
@@ -2215,6 +2354,7 @@ document.getElementById("saveEditBtn").addEventListener("click", () => {
 
   <div class="liveCard wide" id="boxBite"></div>
   <div class="liveCard wide" id="boxBestTimes"></div>
+  <div class="liveCard wide" id="boxScoreChart"></div>
 </section>
 
 <script>
@@ -2234,6 +2374,10 @@ const boxWave = document.getElementById('boxWave');
 const boxTide = document.getElementById('boxTide');
 const boxBite = document.getElementById('boxBite');
 const boxBestTimes = document.getElementById('boxBestTimes');
+const boxScoreChart = document.getElementById('boxScoreChart');
+
+let catchChartSeries = [];
+let chartResizeRaf = null;
 
 function toLocalISO(date){
   const pad = n => String(n).padStart(2, '0');
@@ -2274,24 +2418,141 @@ function extrema(points){
   return out;
 }
 
-function scoreBite({ windSpeed, waveHeight, currentSpeed, minutesToTideTurn }){
-  let score = 100;
-  if (windSpeed < 2) score -= 10;
-  else if (windSpeed <= 12) score += 10;
-  else score -= Math.min(30, (windSpeed - 12) * 4);
+function clamp(v, min, max){
+  return Math.max(min, Math.min(max, v));
+}
 
-  if (waveHeight > 1.8) score -= 28;
-  else if (waveHeight > 1.2) score -= 12;
-  else if (waveHeight >= 0.3) score += 8;
+function lerp(a, b, t){
+  return a + (b - a) * t;
+}
 
-  if (currentSpeed > 2.5) score -= 22;
-  else if (currentSpeed >= 0.3 && currentSpeed <= 1.8) score += 10;
+function gaussian(x, mu, sigma){
+  const z = (x - mu) / sigma;
+  return Math.exp(-0.5 * z * z);
+}
 
-  if (minutesToTideTurn <= 60) score += 14;
-  else if (minutesToTideTurn <= 120) score += 8;
-  else if (minutesToTideTurn <= 240) score += 3;
+function normalizeRange(v, min, max){
+  if (!Number.isFinite(v)) return 0;
+  if (max === min) return 0;
+  return clamp((v - min) / (max - min), 0, 1);
+}
 
-  return Math.max(0, Math.min(100, Math.round(score)));
+function seriesValue(arr, index, fallback = 0){
+  const v = arr?.[index];
+  return Number.isFinite(Number(v)) ? Number(v) : fallback;
+}
+
+function localWindow(arr, index, radius = 3){
+  const out = [];
+  for (let i = Math.max(0, index - radius); i <= Math.min((arr?.length || 0) - 1, index + radius); i++){
+    const v = Number(arr?.[i]);
+    if (Number.isFinite(v)) out.push(v);
+  }
+  return out;
+}
+
+function mean(values){
+  if (!values?.length) return 0;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function moonIllumination(date){
+  const synodic = 29.53058867;
+  const epoch = Date.UTC(2001, 0, 6, 18, 14, 0);
+  const days = (date.getTime() - epoch) / 86400000;
+  const age = ((days % synodic) + synodic) % synodic;
+  const phase = age / synodic;
+  return 0.5 * (1 - Math.cos(2 * Math.PI * phase));
+}
+
+function dawnDuskFactor(date){
+  const h = date.getHours() + date.getMinutes() / 60;
+  const dawn = gaussian(h, 5.7, 1.35);
+  const dusk = gaussian(h, 20.1, 1.7);
+  const night = gaussian(h, 1.5, 1.1) + gaussian(h, 23.0, 1.1);
+  return clamp(Math.max(dawn, dusk) * 0.92 + night * 0.15, 0, 1);
+}
+
+function tideTurnFactor(seaPrev, seaNow, seaNext){
+  if (![seaPrev, seaNow, seaNext].every(Number.isFinite)) return 0.45;
+  const slope = Math.abs(seaNext - seaPrev);
+  return 1 - clamp(slope / 0.22, 0, 1);
+}
+
+function computeTrend(prevWindow, nextWindow, betterWhenLower = true){
+  const prevAvg = mean(prevWindow);
+  const nextAvg = mean(nextWindow);
+  if (!Number.isFinite(prevAvg) || !Number.isFinite(nextAvg)) return 0.5;
+  const delta = betterWhenLower ? (prevAvg - nextAvg) : (nextAvg - prevAvg);
+  return clamp(0.5 + delta / 8, 0, 1);
+}
+
+function scoreFromSample(sample){
+  const {
+    date,
+    windSpeed = 0,
+    windGust = 0,
+    waveHeight = 0,
+    currentSpeed = 0,
+    seaPrev,
+    seaNow,
+    seaNext,
+    seaRange = 0,
+    windTrend = 0,
+    waveTrend = 0,
+    currentTrend = 0
+  } = sample;
+
+  const hourBoost = dawnDuskFactor(date);
+  const moonBoost = 1 - moonIllumination(date);
+
+  const windComfort =
+    0.7 * gaussian(windSpeed, 10.5, 5.2) +
+    0.3 * gaussian(windGust - windSpeed, 5.0, 4.5);
+
+  const waveComfort =
+    0.8 * gaussian(waveHeight, 0.65, 0.55) +
+    0.2 * gaussian(waveHeight, 1.3, 0.9);
+
+  const currentComfort =
+    0.75 * gaussian(currentSpeed, 1.0, 0.7) +
+    0.25 * gaussian(currentSpeed, 0.45, 0.25);
+
+  const tideTurn = tideTurnFactor(seaPrev, seaNow, seaNext);
+  const tideAmplitude = clamp((seaRange - 0.25) / 0.95, 0, 1);
+  const trendBoost = clamp((windTrend + waveTrend + currentTrend) / 3, 0, 1);
+
+  const windPenalty = clamp((windSpeed - 18) / 14, 0, 1) * 0.22;
+  const gustPenalty = clamp((windGust - windSpeed - 7) / 20, 0, 1) * 0.12;
+  const chopPenalty = clamp((waveHeight - 1.8) / 1.8, 0, 1) * 0.2;
+  const currentPenalty = clamp((currentSpeed - 2.7) / 2.3, 0, 1) * 0.16;
+
+  const raw =
+    10 +
+    24 * windComfort +
+    18 * waveComfort +
+    22 * currentComfort +
+    15 * tideTurn +
+    8 * tideAmplitude +
+    7 * hourBoost +
+    5 * moonBoost +
+    9 * trendBoost -
+    100 * windPenalty -
+    100 * gustPenalty -
+    100 * chopPenalty -
+    100 * currentPenalty;
+
+  const score = clamp(Math.round(raw), 0, 100);
+
+  return {
+    score,
+    components: {
+      Wind: Math.round(clamp(windComfort * 100, 0, 100)),
+      Wellen: Math.round(clamp(waveComfort * 100, 0, 100)),
+      Strömung: Math.round(clamp(currentComfort * 100, 0, 100)),
+      Tide: Math.round(clamp(((tideTurn * 0.7) + (tideAmplitude * 0.3)) * 100, 0, 100))
+    }
+  };
 }
 
 function scoreClass(score){
@@ -2306,14 +2567,236 @@ function scoreLabel(score){
   return 'schwach';
 }
 
+function buildScoreModel(weather, marine){
+  const times = weather.hourly?.time || marine.hourly?.time || [];
+  const len = Math.min(24, times.length || 0);
+  const out = [];
+
+  const seaSeries = marine.hourly?.sea_level_height_msl || [];
+  const windSeries = weather.hourly?.wind_speed_10m || [];
+  const gustSeries = weather.hourly?.wind_gusts_10m || [];
+  const waveSeries = marine.hourly?.wave_height || [];
+  const currentSeries = marine.hourly?.ocean_current_velocity || [];
+
+  for (let i = 0; i < len; i++){
+    const date = new Date(times[i]);
+    const seaNow = seriesValue(seaSeries, i, seriesValue(seaSeries, 0, 0));
+    const seaPrev = seriesValue(seaSeries, i - 1, seaNow);
+    const seaNext = seriesValue(seaSeries, i + 1, seaNow);
+
+    const seaRange = localWindow(seaSeries, i, 6);
+    const windWindow = localWindow(windSeries, i, 3);
+    const waveWindow = localWindow(waveSeries, i, 3);
+    const currentWindow = localWindow(currentSeries, i, 3);
+
+    const score = scoreFromSample({
+      date,
+      windSpeed: seriesValue(windSeries, i, seriesValue(weather.current?.wind_speed_10m, 0, 0)),
+      windGust: seriesValue(gustSeries, i, seriesValue(weather.current?.wind_gusts_10m, 0, 0)),
+      waveHeight: seriesValue(waveSeries, i, seriesValue(marine.current?.wave_height, 0, 0)),
+      currentSpeed: seriesValue(currentSeries, i, seriesValue(marine.current?.ocean_current_velocity, 0, 0)),
+      seaPrev,
+      seaNow,
+      seaNext,
+      seaRange: seaRange.length ? Math.max(...seaRange) - Math.min(...seaRange) : 0,
+      windTrend: computeTrend(windWindow.slice(0, Math.max(0, windWindow.length - 1)), windWindow.slice(1), true),
+      waveTrend: computeTrend(waveWindow.slice(0, Math.max(0, waveWindow.length - 1)), waveWindow.slice(1), true),
+      currentTrend: computeTrend(currentWindow.slice(0, Math.max(0, currentWindow.length - 1)), currentWindow.slice(1), true)
+    });
+
+    out.push({
+      time: date,
+      label: date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      score: score.score,
+      components: score.components
+    });
+  }
+
+  return out;
+}
+
+function summarizeBestWindows(series){
+  const top = [...series].sort((a, b) => b.score - a.score).slice(0, 4);
+  return top;
+}
+
+function drawCatchChart(series){
+  const canvas = document.getElementById('catchChart');
+  if (!canvas || !series?.length) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(320, Math.floor(rect.width));
+  const height = Math.max(220, Math.floor(rect.height));
+
+  canvas.width = Math.floor(width * dpr);
+  canvas.height = Math.floor(height * dpr);
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const padL = 42;
+  const padR = 18;
+  const padT = 18;
+  const padB = 32;
+  const innerW = width - padL - padR;
+  const innerH = height - padT - padB;
+
+  const values = series.map(p => p.score);
+  const minY = 0;
+  const maxY = 100;
+
+  // background grid
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.font = '12px Inter, system-ui, sans-serif';
+
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = padT + innerH - ((v - minY) / (maxY - minY)) * innerH;
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(width - padR, y);
+    ctx.stroke();
+    ctx.fillText(String(v), 8, y + 4);
+  });
+
+  const xFor = i => padL + (series.length === 1 ? innerW / 2 : (i / (series.length - 1)) * innerW);
+  const yFor = v => padT + innerH - ((v - minY) / (maxY - minY)) * innerH;
+
+  // area fill
+  ctx.beginPath();
+  series.forEach((p, i) => {
+    const x = xFor(i);
+    const y = yFor(p.score);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(xFor(series.length - 1), padT + innerH);
+  ctx.lineTo(xFor(0), padT + innerH);
+  ctx.closePath();
+  const gradient = ctx.createLinearGradient(0, padT, 0, padT + innerH);
+  gradient.addColorStop(0, 'rgba(102,217,239,0.22)');
+  gradient.addColorStop(1, 'rgba(102,217,239,0.02)');
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // line
+  ctx.beginPath();
+  series.forEach((p, i) => {
+    const x = xFor(i);
+    const y = yFor(p.score);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = 'rgba(102,217,239,0.95)';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // points + current marker
+  const currentIndex = Math.min(series.length - 1, Math.max(0, Math.round(series.length / 2) - 0));
+  series.forEach((p, i) => {
+    const x = xFor(i);
+    const y = yFor(p.score);
+    ctx.beginPath();
+    ctx.arc(x, y, i === currentIndex ? 4.5 : 2.6, 0, Math.PI * 2);
+    ctx.fillStyle = i === currentIndex ? '#ffffff' : 'rgba(141,255,179,0.95)';
+    ctx.fill();
+  });
+
+  // x labels
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  const labelIndexes = [0, Math.floor((series.length - 1) / 3), Math.floor((series.length - 1) * 2 / 3), series.length - 1];
+  [...new Set(labelIndexes)].forEach(i => {
+    const x = xFor(i);
+    const label = series[i].label;
+    ctx.fillText(label, x - 14, height - 10);
+  });
+}
+
+function updateChartCard(series){
+  if (!boxScoreChart) return;
+  if (!series?.length){
+    boxScoreChart.innerHTML = `
+      <div class="liveK">24h Fangscore-Verlauf</div>
+      <div class="liveSmall">Keine Chart-Daten verfügbar.</div>
+    `;
+    return;
+  }
+
+  const current = series[Math.floor(series.length / 2)] || series[0];
+  const peak = [...series].sort((a, b) => b.score - a.score)[0];
+  const low = [...series].sort((a, b) => a.score - b.score)[0];
+
+  boxScoreChart.innerHTML = `
+    <div class="chartWrap">
+      <div class="chartHeader">
+        <div>
+          <div class="liveK">24h Fangscore-Verlauf</div>
+          <div class="scoreBig">${current.score}/100</div>
+        </div>
+        <div class="chartLegend">
+          <span class="legendPill"><span class="legendMiniDot"></span>Fangscore</span>
+          <span class="legendPill">Peak ${peak.score}/100 · ${peak.label}</span>
+          <span class="legendPill">Low ${low.score}/100 · ${low.label}</span>
+        </div>
+      </div>
+      <canvas id="catchChart" class="catchChart"></canvas>
+      <div class="chartFooter">
+        <span>Trend: <span class="trendText">${current.score >= 70 ? 'stark' : current.score >= 45 ? 'wechselhaft' : 'schwach'}</span></span>
+        <span>${series.length} Stunden prognostiziert</span>
+      </div>
+    </div>
+  `;
+
+  requestAnimationFrame(() => drawCatchChart(series));
+}
+
+function scoreSummaryHtml(model){
+  const current = model[Math.floor(model.length / 2)] || model[0];
+  const comp = current?.components || {};
+  const best = [...model].sort((a, b) => b.score - a.score).slice(0, 3);
+  const bestHtml = best.map(x => `<div class="bestItem"><span>${x.label}</span><strong>${x.score}/100</strong></div>`).join('');
+
+  return `
+    <div class="scoreWrap">
+      <div class="scoreHeadline">
+        <div>
+          <div class="liveK">Live Fangscore</div>
+          <div class="scoreBig ${scoreClass(current.score)}">${current.score}/100</div>
+        </div>
+        <div class="score ${scoreClass(current.score)}">${scoreLabel(current.score)}</div>
+      </div>
+
+      <div class="scoreSub">
+        Der Wert kombiniert Wind, Wellen, Strömung, Tide-Turn, Tageslicht, Mondphase und die kurzfristige 24h-Trendlinie.
+      </div>
+
+      <div class="scoreBars">
+        ${Object.entries(comp).map(([label, value]) => `
+          <div class="scoreBar">
+            <div class="scoreBarLabel">${label}</div>
+            <div class="scoreBarTrack"><div class="scoreBarFill" style="width:${clamp(value, 0, 100)}%"></div></div>
+            <div class="scoreBarValue">${value}/100</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="bestList">
+        ${bestHtml}
+      </div>
+    </div>
+  `;
+}
+
 async function fetchXML(url){
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Tide fetch failed: ${res.status}`);
   const text = await res.text();
   return new DOMParser().parseFromString(text, 'application/xml');
-  console.log("TIDE XML ROOT:", tideXml.documentElement?.tagName);
-console.log("TIDE RAW:", tideXml.documentElement?.innerHTML?.slice(0, 500));
-console.log("POINTS:", tidePoints.length);
 }
 
 async function fetchJSON(url){
@@ -2376,6 +2859,7 @@ liveToggle.addEventListener('click', () => {
 
 liveClose.addEventListener('click', closeLive);
 
+
 async function refreshLiveData(){
   try{
     boxWind.innerHTML = 'Lade Wind…';
@@ -2384,26 +2868,23 @@ async function refreshLiveData(){
     boxTide.innerHTML = 'Lade Tide…';
     boxBite.innerHTML = 'Lade Beißindex…';
     boxBestTimes.innerHTML = 'Lade beste Zeiten…';
-
-    const from = toLocalISO(new Date(Date.now() - 2 * 3600 * 1000));
-    const to = toLocalISO(new Date(Date.now() + 18 * 3600 * 1000));
+    boxScoreChart.innerHTML = 'Lade 24h-Verlauf…';
 
     const weatherUrl =
       `https://api.open-meteo.com/v1/forecast?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
       `&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
       `&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
-      `&wind_speed_unit=kmh&timezone=${encodeURIComponent(LIVE.tz)}`;
+      `&forecast_hours=24&wind_speed_unit=kmh&timezone=${encodeURIComponent(LIVE.tz)}`;
 
     const marineUrl =
       `https://marine-api.open-meteo.com/v1/marine?latitude=${LIVE.lat}&longitude=${LIVE.lon}` +
       `&current=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
       `&hourly=wave_height,wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl` +
-      `&length_unit=metric&timezone=${encodeURIComponent(LIVE.tz)}`;
+      `&forecast_hours=24&length_unit=metric&timezone=${encodeURIComponent(LIVE.tz)}`;
 
     const weather = await fetchJSON(weatherUrl);
     const marine = await fetchJSON(marineUrl);
 
-    // ===== SAFE CURRENT FALLBACKS =====
     const wNow = weather.current ?? {
       wind_speed_10m: weather.hourly?.wind_speed_10m?.[0],
       wind_direction_10m: weather.hourly?.wind_direction_10m?.[0],
@@ -2418,7 +2899,6 @@ async function refreshLiveData(){
       sea_level_height_msl: marine.hourly?.sea_level_height_msl?.[0]
     };
 
-    // ===== SAFE NUMBERS =====
     const windSpeed = Number(wNow.wind_speed_10m ?? 0);
     const windDir   = Number(wNow.wind_direction_10m ?? 0);
     const windGust  = Number(wNow.wind_gusts_10m ?? 0);
@@ -2431,39 +2911,19 @@ async function refreshLiveData(){
 
     const seaLevel = Number(mNow.sea_level_height_msl ?? 0);
 
-    // ❌ TIDE KOMPLETT ENTFERNT (kein Parsing mehr)
+    const model = buildScoreModel(weather, marine);
+    const series = model.length ? model : [{
+      time: new Date(),
+      label: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      score: 0,
+      components: { Wind: 0, Wellen: 0, Strömung: 0, Tide: 0 }
+    }];
 
-    let nextTurn = null;
+    const currentIndex = Math.floor(series.length / 2);
+    const currentScore = series[currentIndex] || series[0];
+    const currentComponents = currentScore.components || {};
 
-    const bite = scoreBite({
-      windSpeed,
-      waveHeight,
-      currentSpeed,
-      minutesToTideTurn: 999
-    });
-
-    const nextHours = (weather.hourly?.time || [])
-      .slice(0, 12)
-      .map((t, i) => {
-        const time = new Date(t).getTime();
-
-        const s = scoreBite({
-          windSpeed: Number(weather.hourly.wind_speed_10m?.[i] ?? windSpeed),
-          waveHeight: Number(marine.hourly.wave_height?.[i] ?? waveHeight),
-          currentSpeed: Number(marine.hourly.ocean_current_velocity?.[i] ?? currentSpeed),
-          minutesToTideTurn: 999
-        });
-
-        return {
-          label: new Date(time).toLocaleTimeString('de-DE', {
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          score: s
-        };
-      })
-      .sort((a,b) => b.score - a.score)
-      .slice(0, 3);
+    const nextHours = [...series].sort((a, b) => b.score - a.score).slice(0, 4);
 
     boxWind.innerHTML = `
       <div class="liveK">Wind</div>
@@ -2512,33 +2972,40 @@ async function refreshLiveData(){
         weil dort Beutefische konzentriert werden.
       </div>
 
-      <a href="https://fishingpoints.app/de/forecasts/europe/norway/c/alesund/"
-         target="_blank"
-         class="liveBtn"
-         style="
-            display:inline-block;
-            margin-top:10px;
-            padding:10px 12px;
-            border-radius:10px;
-            background:#1f6feb;
-            color:white;
-            text-decoration:none;
-            font-weight:600;
-         ">
-        Öffne Forecasts
-      </a>
+<div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+  <a href="https://fishingpoints.app/de/forecasts/europe/norway/c/alesund/"
+     target="_blank"
+     class="liveBtn"
+     style="
+        display:inline-block;
+        padding:10px 12px;
+        border-radius:10px;
+        background:#1f6feb;
+        color:white;
+        text-decoration:none;
+        font-weight:600;
+     ">
+    Öffne Forecasts
+  </a>
+
+  <a href="https://hermann899.github.io/NorwegenAngeln/"
+     target="_blank"
+     class="liveBtn"
+     style="
+        display:inline-block;
+        padding:10px 12px;
+        border-radius:10px;
+        background:#f28c28;
+        color:white;
+        text-decoration:none;
+        font-weight:600;
+     ">
+    Pro-Wissen
+  </a>
+</div>
     `;
 
-    boxBite.innerHTML = `
-      <div class="liveK">Beißindex</div>
-      <div class="liveRow">
-        <div class="liveV score ${scoreClass(bite)}">${bite}/100</div>
-        <div class="score ${scoreClass(bite)}">${scoreLabel(bite)}</div>
-      </div>
-      <div class="liveSmall">
-        Kombiniert aus Wind, Wellen und Strömung.
-      </div>
-    `;
+    boxBite.innerHTML = scoreSummaryHtml(series);
 
     boxBestTimes.innerHTML = `
       <div class="liveK">Beste Angelzeiten</div>
@@ -2550,8 +3017,14 @@ async function refreshLiveData(){
           </div>
         `).join('')}
       </div>
-      <div class="liveSmall">Top 3 Stunden für heute in Ålesund.</div>
+      <div class="liveSmall">Top 4 Stunden im nächsten 24h-Fenster in Ålesund.</div>
     `;
+
+    updateChartCard(series);
+    catchChartSeries = series;
+
+    // force chart redraw if panel is resized / reopened
+    window.requestAnimationFrame(() => drawCatchChart(series));
 
   } catch (err){
     boxWind.innerHTML = 'Live-Daten nicht geladen.';
@@ -2560,6 +3033,7 @@ async function refreshLiveData(){
     boxTide.innerHTML = 'Live-Daten nicht geladen.';
     boxBite.innerHTML = 'Live-Daten nicht geladen.';
     boxBestTimes.innerHTML = 'Live-Daten nicht geladen.';
+    boxScoreChart.innerHTML = 'Live-Daten nicht geladen.';
     console.error(err);
   }
 }
@@ -2567,6 +3041,12 @@ async function refreshLiveData(){
 setInterval(() => {
   if (livePanel.classList.contains('open')) refreshLiveData();
 }, 10 * 60 * 1000);
+
+window.addEventListener('resize', () => {
+  if (!livePanel.classList.contains('open') || !catchChartSeries?.length) return;
+  if (chartResizeRaf) cancelAnimationFrame(chartResizeRaf);
+  chartResizeRaf = requestAnimationFrame(() => drawCatchChart(catchChartSeries));
+});
 </script>
 
 </body>
