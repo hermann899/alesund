@@ -399,7 +399,7 @@
             <option value="plattfisch">Nur Plattfisch</option>
             <option value="makrele">Nur Makrele</option>
           </select>
-          <button id="fitAll" class="btn">Alle anzeigen</button>
+          <button id="fitAll" class="btn">Map zentrieren</button>
         </div>
 
         <div class="controlRow">
@@ -435,7 +435,6 @@
     <main id="mapWrap">
       <div id="map"></div>
       <div class="mapChrome">
-        <div class="pill">Start: Ålesund</div>
         <button id="driftTrackBtn" class="trackBtn" type="button" title="Drift-Tracking starten / stoppen">
           <span class="recDot"></span>
           REC
@@ -452,6 +451,475 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
+    (function installOfflineLeafletShim() {
+      if (window.L) return;
+
+      const style = document.createElement('style');
+      style.textContent = `
+        .leaflet-container{
+          position:relative;
+          overflow:hidden;
+          background:
+            radial-gradient(circle at 20% 20%, rgba(102,217,239,.12), transparent 30%),
+            radial-gradient(circle at 80% 70%, rgba(141,255,179,.08), transparent 26%),
+            linear-gradient(180deg, #0b1726 0%, #07111c 100%);
+        }
+        .mini-layer{position:absolute;inset:0;pointer-events:none}
+        .mini-marker{
+          position:absolute;
+          transform:translate(-50%,-50%);
+          pointer-events:auto;
+          will-change:transform,left,top;
+        }
+        .mini-circle{
+          position:absolute;
+          transform:translate(-50%,-50%);
+          border-radius:50%;
+          pointer-events:none;
+        }
+        .mini-polyline{
+          position:absolute;
+          inset:0;
+          overflow:visible;
+          pointer-events:none;
+        }
+        .mini-control{
+          position:absolute;
+          z-index:1200;
+        }
+        .mini-control button{font:inherit}
+        .mini-popup{
+          position:absolute;
+          min-width:220px;
+          max-width:350px;
+          transform:translate(-50%,-100%);
+          background:#08111b;
+          color:#f1f7ff;
+          border:1px solid rgba(255,255,255,.10);
+          border-radius:18px;
+          box-shadow:0 18px 40px rgba(0,0,0,.35);
+          padding:12px 14px 12px;
+          pointer-events:auto;
+          z-index:1300;
+        }
+        .mini-popup-close{
+          position:absolute;
+          right:8px;
+          top:6px;
+          border:none;
+          background:transparent;
+          color:#fff;
+          font-size:18px;
+          cursor:pointer;
+          line-height:1;
+        }
+        .mini-popup-content{padding-right:18px}
+        .mini-zoom-control{
+          display:flex;
+          flex-direction:column;
+          overflow:hidden;
+          border-radius:14px;
+          border:1px solid rgba(255,255,255,.08);
+          box-shadow:0 4px 12px rgba(0,0,0,.35);
+        }
+        .mini-zoom-control button{
+          width:34px;
+          height:34px;
+          border:none;
+          color:#fff;
+          background:rgba(10,17,27,.88);
+          cursor:pointer;
+          font-size:18px;
+        }
+        .mini-zoom-control button + button{border-top:1px solid rgba(255,255,255,.08)}
+      `;
+      document.head.appendChild(style);
+
+      const DEG2RAD = Math.PI / 180;
+      const RAD2DEG = 180 / Math.PI;
+      const TILE_SIZE = 256;
+
+      function projectLatLng(lat, lng, zoom) {
+        const sin = Math.sin(lat * DEG2RAD);
+        const scale = TILE_SIZE * Math.pow(2, zoom);
+        const x = (lng + 180) / 360 * scale;
+        const y = (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale;
+        return { x, y };
+      }
+
+      function unprojectPoint(x, y, zoom) {
+        const scale = TILE_SIZE * Math.pow(2, zoom);
+        const lng = x / scale * 360 - 180;
+        const n = Math.PI - 2 * Math.PI * y / scale;
+        const lat = RAD2DEG * Math.atan(Math.sinh(n));
+        return { lat, lng };
+      }
+
+      class MiniBounds {
+        constructor(latlngs) {
+          const points = (latlngs || []).map(ll => Array.isArray(ll) ? { lat: Number(ll[0]), lng: Number(ll[1]) } : { lat: Number(ll.lat), lng: Number(ll.lng) });
+          this._empty = !points.length;
+          this.minLat = this._empty ? 0 : Math.min(...points.map(p => p.lat));
+          this.maxLat = this._empty ? 0 : Math.max(...points.map(p => p.lat));
+          this.minLng = this._empty ? 0 : Math.min(...points.map(p => p.lng));
+          this.maxLng = this._empty ? 0 : Math.max(...points.map(p => p.lng));
+        }
+        pad(factor) {
+          if (this._empty) return this;
+          const latPad = (this.maxLat - this.minLat) * factor;
+          const lngPad = (this.maxLng - this.minLng) * factor;
+          return new MiniBounds([
+            [this.minLat - latPad, this.minLng - lngPad],
+            [this.maxLat + latPad, this.maxLng + lngPad]
+          ]);
+        }
+      }
+
+      class MiniMap {
+        constructor(id, options = {}) {
+          this.options = options;
+          this.container = typeof id === 'string' ? document.getElementById(id) : id;
+          this.container.classList.add('leaflet-container');
+          this.container.style.position = this.container.style.position || 'relative';
+          this.container.style.overflow = 'hidden';
+
+          this._center = { lat: 0, lng: 0 };
+          this._zoom = 10;
+          this._layers = new Set();
+          this._events = {};
+          this._popup = null;
+          this._activePopupMarker = null;
+
+          this._root = document.createElement('div');
+          this._root.className = 'mini-root';
+          this._root.style.position = 'absolute';
+          this._root.style.inset = '0';
+          this._root.style.pointerEvents = 'none';
+          this.container.appendChild(this._root);
+
+          this._svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          this._svg.classList.add('mini-polyline');
+          this._svg.style.position = 'absolute';
+          this._svg.style.inset = '0';
+          this._svg.style.pointerEvents = 'none';
+          this._svg.style.zIndex = '200';
+          this._root.appendChild(this._svg);
+
+          this._markerPane = document.createElement('div');
+          this._markerPane.className = 'mini-layer';
+          this._markerPane.style.zIndex = '400';
+          this._root.appendChild(this._markerPane);
+
+          this._popupPane = document.createElement('div');
+          this._popupPane.className = 'mini-layer';
+          this._popupPane.style.zIndex = '700';
+          this._root.appendChild(this._popupPane);
+
+          this._controlPane = document.createElement('div');
+          this._controlPane.className = 'mini-layer';
+          this._controlPane.style.zIndex = '900';
+          this.container.appendChild(this._controlPane);
+
+          this._resizeHandler = () => this._render();
+          window.addEventListener('resize', this._resizeHandler);
+
+          this.container.addEventListener('click', (e) => {
+            const inControl = e.target.closest('.mini-control') || e.target.closest('.trackBtn') || e.target.closest('.leaflet-control');
+            const inPopup = e.target.closest('.mini-popup');
+            const inMarker = e.target.closest('.mini-marker');
+            if (inControl || inPopup || inMarker) return;
+            const rect = this.container.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const latlng = this.unproject([x, y]);
+            this._emit('click', { latlng, originalEvent: e });
+          });
+        }
+
+        setView(center, zoom = this._zoom) {
+          const c = Array.isArray(center) ? { lat: Number(center[0]), lng: Number(center[1]) } : { lat: Number(center.lat), lng: Number(center.lng) };
+          this._center = c;
+          if (Number.isFinite(Number(zoom))) this._zoom = Number(zoom);
+          this._render();
+          return this;
+        }
+
+        getZoom() { return this._zoom; }
+        getCenter() { return { ...this._center }; }
+
+        project(latlng) {
+          const point = Array.isArray(latlng) ? { lat: Number(latlng[0]), lng: Number(latlng[1]) } : { lat: Number(latlng.lat), lng: Number(latlng.lng) };
+          const centerPoint = projectLatLng(this._center.lat, this._center.lng, this._zoom);
+          const p = projectLatLng(point.lat, point.lng, this._zoom);
+          return {
+            x: p.x - centerPoint.x + this._width() / 2,
+            y: p.y - centerPoint.y + this._height() / 2
+          };
+        }
+
+        unproject(point) {
+          const x = Number(point[0]);
+          const y = Number(point[1]);
+          const centerPoint = projectLatLng(this._center.lat, this._center.lng, this._zoom);
+          const worldX = centerPoint.x - this._width() / 2 + x;
+          const worldY = centerPoint.y - this._height() / 2 + y;
+          return unprojectPoint(worldX, worldY, this._zoom);
+        }
+
+        addLayer(layer) {
+          this._layers.add(layer);
+          if (layer && typeof layer.onAdd === 'function') layer.onAdd(this);
+          this._render();
+          return this;
+        }
+
+        removeLayer(layer) {
+          this._layers.delete(layer);
+          if (layer && typeof layer.onRemove === 'function') layer.onRemove(this);
+          this._render();
+          return this;
+        }
+
+        hasLayer(layer) { return this._layers.has(layer); }
+
+        on(event, handler) {
+          (this._events[event] ||= []).push(handler);
+          return this;
+        }
+
+        _emit(event, payload) {
+          (this._events[event] || []).forEach(fn => {
+            try { fn(payload); } catch (err) { console.error(err); }
+          });
+        }
+
+        _width() { return this.container.clientWidth || 1; }
+        _height() { return this.container.clientHeight || 1; }
+
+        _fitZoom(bounds) {
+          const width = this._width();
+          const height = this._height();
+          for (let zoom = 18; zoom >= 0; zoom--) {
+            const p1 = projectLatLng(bounds.minLat, bounds.minLng, zoom);
+            const p2 = projectLatLng(bounds.maxLat, bounds.maxLng, zoom);
+            const dx = Math.abs(p2.x - p1.x);
+            const dy = Math.abs(p2.y - p1.y);
+            if (dx <= width * 0.82 && dy <= height * 0.82) return zoom;
+          }
+          return 0;
+        }
+
+        fitBounds(bounds) {
+          if (!bounds || bounds._empty) return this;
+          const center = { lat: (bounds.minLat + bounds.maxLat) / 2, lng: (bounds.minLng + bounds.maxLng) / 2 };
+          const zoom = this._fitZoom(bounds);
+          return this.setView([center.lat, center.lng], zoom);
+        }
+
+        _clearSvg() {
+          while (this._svg.firstChild) this._svg.removeChild(this._svg.firstChild);
+        }
+
+        _ensurePopup() {
+          if (this._popup) return this._popup;
+          const el = document.createElement('div');
+          el.className = 'mini-popup';
+          const close = document.createElement('button');
+          close.type = 'button';
+          close.className = 'mini-popup-close';
+          close.innerHTML = '&times;';
+          close.addEventListener('click', (e) => { e.stopPropagation(); this.closePopup(); });
+          const content = document.createElement('div');
+          content.className = 'mini-popup-content';
+          el.appendChild(close);
+          el.appendChild(content);
+          this._popupPane.appendChild(el);
+          this._popup = { el, content, close };
+          return this._popup;
+        }
+
+        openPopup(marker, html) {
+          const popup = this._ensurePopup();
+          popup.content.innerHTML = html || '';
+          popup.el.style.display = 'block';
+          this._activePopupMarker = marker;
+          this._render();
+        }
+
+        closePopup() {
+          if (this._popup) this._popup.el.style.display = 'none';
+          this._activePopupMarker = null;
+        }
+
+        _render() {
+          const width = this._width();
+          const height = this._height();
+          this._svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+          this._clearSvg();
+          this._layers.forEach(layer => { if (layer && typeof layer._render === 'function') layer._render(this); });
+          if (this._popup && this._activePopupMarker && typeof this._activePopupMarker._getScreenPos === 'function') {
+            const pos = this._activePopupMarker._getScreenPos();
+            this._popup.el.style.left = `${pos.x}px`;
+            this._popup.el.style.top = `${pos.y - 12}px`;
+          }
+        }
+      }
+
+      function createMarkerElement(iconOptions = {}) {
+        const el = document.createElement('div');
+        el.className = 'mini-marker';
+        el.innerHTML = iconOptions.html || '';
+        if (iconOptions.iconSize) {
+          el.style.width = `${iconOptions.iconSize[0]}px`;
+          el.style.height = `${iconOptions.iconSize[1]}px`;
+        } else {
+          el.style.width = '50px';
+          el.style.height = '50px';
+        }
+        return el;
+      }
+
+      class MiniMarker {
+        constructor(latlng, options = {}) {
+          this.latlng = Array.isArray(latlng) ? { lat: Number(latlng[0]), lng: Number(latlng[1]) } : { lat: Number(latlng.lat), lng: Number(latlng.lng) };
+          this.options = options;
+          this._opacity = 1;
+          this._map = null;
+          this._popupHtml = '';
+          this._icon = options.icon || null;
+          this._el = createMarkerElement(this._icon || {});
+          this._el.style.opacity = '1';
+          this._el.style.position = 'absolute';
+          this._el.style.transform = 'translate(-50%,-50%)';
+          this._el.style.pointerEvents = 'auto';
+          this._el.style.zIndex = '450';
+          if (this._icon?.html) this._el.innerHTML = this._icon.html;
+        }
+
+        addTo(map) { this._map = map; map._markerPane.appendChild(this._el); map.addLayer(this); return this; }
+        onAdd(map) { this._map = map; }
+        onRemove() { if (this._el.parentNode) this._el.parentNode.removeChild(this._el); }
+        setLatLng(latlng) { this.latlng = Array.isArray(latlng) ? { lat: Number(latlng[0]), lng: Number(latlng[1]) } : { lat: Number(latlng.lat), lng: Number(latlng.lng) }; this._render(this._map); return this; }
+        getLatLng() { return { ...this.latlng }; }
+        setIcon(icon) { this._icon = icon; this._el.innerHTML = icon?.html || ''; if (icon?.iconSize) { this._el.style.width = `${icon.iconSize[0]}px`; this._el.style.height = `${icon.iconSize[1]}px`; } this._render(this._map); return this; }
+        setOpacity(value) { this._opacity = Number(value); this._el.style.opacity = String(this._opacity); return this; }
+        bindPopup(html) { this._popupHtml = html || ''; return this; }
+        setPopupContent(html) { this._popupHtml = html || ''; return this; }
+        openPopup() { if (this._map) this._map.openPopup(this, this._popupHtml); return this; }
+        _getScreenPos() { return this._map ? this._map.project(this.latlng) : { x: 0, y: 0 }; }
+        _render(map) { if (!map) return; const pos = map.project(this.latlng); this._el.style.left = `${pos.x}px`; this._el.style.top = `${pos.y}px`; this._el.style.opacity = String(this._opacity); this._el.style.display = 'block'; if (this._map && this._map._activePopupMarker === this) { this._map._ensurePopup(); this._map._popup.el.style.left = `${pos.x}px`; this._map._popup.el.style.top = `${pos.y - 12}px`; } }
+      }
+
+      class MiniCircle extends MiniMarker {
+        constructor(latlng, options = {}) {
+          super(latlng, options);
+          this._radius = options.radius || 6;
+          this._isGeoCircle = !!options._geoRadius;
+          this._el.innerHTML = '';
+          this._el.style.borderRadius = '50%';
+          this._el.style.boxSizing = 'border-box';
+          this._el.style.pointerEvents = 'none';
+          this._el.style.zIndex = '300';
+          this._fillColor = options.fillColor || options.color || '#00a8ff';
+          this._color = options.color || '#fff';
+          this._weight = Number(options.weight || 1);
+          this._fillOpacity = options.fillOpacity ?? 0.2;
+          this._opacity = options.opacity ?? 1;
+        }
+        setRadius(radius) { this._radius = Number(radius); this._render(this._map); return this; }
+        addTo(map) { this._map = map; map._markerPane.appendChild(this._el); map.addLayer(this); return this; }
+        _render(map) {
+          if (!map) return;
+          const pos = map.project(this.latlng);
+          let pixelRadius = this._radius;
+          if (this._isGeoCircle) {
+            const metersPerPixel = 156543.03392 * Math.cos(this.latlng.lat * DEG2RAD) / Math.pow(2, map.getZoom());
+            pixelRadius = Math.max(2, this._radius / metersPerPixel);
+          }
+          const size = Math.max(4, pixelRadius * 2);
+          this._el.style.left = `${pos.x}px`;
+          this._el.style.top = `${pos.y}px`;
+          this._el.style.width = `${size}px`;
+          this._el.style.height = `${size}px`;
+          this._el.style.marginLeft = `${-size / 2}px`;
+          this._el.style.marginTop = `${-size / 2}px`;
+          this._el.style.background = this._fillOpacity > 0 ? this._fillColor : 'transparent';
+          this._el.style.border = `${this._weight}px solid ${this._color}`;
+          this._el.style.opacity = String(this._opacity);
+          this._el.style.boxShadow = '0 0 0 1px rgba(0,0,0,.15) inset';
+        }
+      }
+
+      class MiniPolyline {
+        constructor(latlngs = [], options = {}) {
+          this.latlngs = latlngs;
+          this.options = options;
+          this._map = null;
+          this._path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          this._path.setAttribute('fill', 'none');
+          this._path.setAttribute('stroke-linecap', 'round');
+          this._path.setAttribute('stroke-linejoin', 'round');
+          this._path.setAttribute('pointer-events', 'none');
+          this._path.style.pointerEvents = 'none';
+        }
+        addTo(map) { this._map = map; map._svg.appendChild(this._path); map.addLayer(this); return this; }
+        onAdd(map) { this._map = map; }
+        onRemove() { if (this._path.parentNode) this._path.parentNode.removeChild(this._path); }
+        setLatLngs(latlngs) { this.latlngs = latlngs || []; this._render(this._map); return this; }
+        _render(map) {
+          if (!map) return;
+          const pts = (this.latlngs || []).map(ll => map.project(ll));
+          if (!pts.length) { this._path.setAttribute('d', ''); return; }
+          const d = pts.map((p, i) => `${i ? 'L' : 'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+          this._path.setAttribute('d', d);
+          if (this.options.color) this._path.setAttribute('stroke', this.options.color);
+          if (this.options.weight) this._path.setAttribute('stroke-width', this.options.weight);
+          if (this.options.opacity != null) this._path.setAttribute('stroke-opacity', this.options.opacity);
+          if (this.options.dashArray) this._path.setAttribute('stroke-dasharray', this.options.dashArray);
+          if (this.options.className) this._path.setAttribute('class', this.options.className);
+          this._path.setAttribute('vector-effect', 'non-scaling-stroke');
+        }
+      }
+
+      function noOpLayer() { return { addTo() { return this; } }; }
+
+      function control(options = {}) {
+        return {
+          options,
+          onAdd: null,
+          addTo(map) {
+            if (typeof this.onAdd !== 'function') return this;
+            const el = this.onAdd(map);
+            if (!el) return this;
+            el.classList.add('mini-control');
+            el.style.position = 'absolute';
+            if (this.options.position === 'topleft') { el.style.left = '16px'; el.style.top = '16px'; }
+            else if (this.options.position === 'topright') { el.style.right = '16px'; el.style.top = '16px'; }
+            else if (this.options.position === 'bottomleft') { el.style.left = '16px'; el.style.bottom = '16px'; }
+            else if (this.options.position === 'bottomright') { el.style.right = '16px'; el.style.bottom = '16px'; }
+            else { el.style.left = '16px'; el.style.top = '16px'; }
+            map._controlPane.appendChild(el);
+            return this;
+          }
+        };
+      }
+
+      control.layers = function() { return noOpLayer(); };
+
+      window.L = {
+        map: (id, options) => new MiniMap(id, options),
+        tileLayer: () => noOpLayer(),
+        divIcon: (options = {}) => options,
+        marker: (latlng, options) => new MiniMarker(latlng, options),
+        circleMarker: (latlng, options) => new MiniCircle(latlng, options),
+        circle: (latlng, options) => new MiniCircle(latlng, { ...options, _geoRadius: true }),
+        polyline: (latlngs, options) => new MiniPolyline(latlngs, options),
+        control,
+        latLngBounds: (latlngs) => new MiniBounds(latlngs),
+        DomUtil: { create(tagName, className) { const el = document.createElement(tagName); if (className) el.className = className; return el; } },
+        DomEvent: { disableClickPropagation() {}, stopPropagation() {} }
+      };
+    })();
     const start = { name: 'Ålesund', lat: 62.4722, lng: 6.1549 };
 
     let spots = [
