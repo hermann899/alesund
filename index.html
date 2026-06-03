@@ -165,6 +165,81 @@
     }
     .legendItem{display:flex;align-items:center;gap:7px;font-size:13px;color:#ecf6ff;font-weight:700}
     .legendDot{width:10px;height:10px;border-radius:50%}
+    .infoBtn{
+      pointer-events:auto;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      background:rgba(10,17,27,.92);
+      backdrop-filter:blur(10px);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:var(--shadow);
+      cursor:pointer;
+      font-size:16px;
+      font-weight:900;
+      line-height:1;
+      transition:.18s ease;
+    }
+    .infoBtn:hover{ transform:translateY(-1px); border-color:rgba(102,217,239,.4); }
+    .infoModal{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(3,7,12,.72);
+      backdrop-filter:blur(8px);
+      z-index:15000;
+      padding:18px;
+    }
+    .infoModal.open{ display:flex; }
+    .infoCard{
+      width:min(420px, 100%);
+      background:linear-gradient(180deg, rgba(12,23,36,.98), rgba(7,17,28,.98));
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:22px;
+      box-shadow:0 24px 80px rgba(0,0,0,.5);
+      padding:18px 18px 16px;
+      color:#fff;
+    }
+    .infoHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .infoTitle{ margin:0; font-size:20px; font-weight:900; }
+    .infoSub{ margin:4px 0 0; color:var(--muted); font-size:13px; line-height:1.5; }
+    .infoClose{
+      border:none;
+      background:rgba(255,255,255,.05);
+      color:#fff;
+      width:34px;
+      height:34px;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:18px;
+      font-weight:900;
+    }
+    .infoList{ display:grid; gap:10px; margin-top:14px; }
+    .infoRow{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      padding:11px 12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      font-size:14px;
+    }
+    .infoSpecies{ font-weight:800; }
+    .infoValue{ font-weight:900; color:#ffcb66; white-space:nowrap; }
     .legendDot.kante{background:#ff7a7a}
     .legendDot.plattfisch{background:#66d9ef}
     .legendDot.makrele{background:#8dffb3}
@@ -522,8 +597,6 @@
         <div class="stats">
           <div class="stat"><div class="label">Punkte</div><div class="value" id="countPoints">0</div></div>
           <div class="stat"><div class="label">Aktiv</div><div class="value" id="activeType">Alle</div></div>
-          <div class="stat"><div class="label">Nächster Spot</div><div class="value" id="nearestSpot">–</div></div>
-          <div class="stat"><div class="label">Start</div><div class="value">Ålesund</div></div>
         </div>
       </div>
 
@@ -578,51 +651,7 @@
           <span class="recDot"></span>
           REC
         </button>
-        <div id="driftHud" class="driftHud" aria-live="polite">
-          <div class="driftHudTop">
-            <div>
-              <div class="driftHudTitle">Driftgeschwindigkeit</div>
-              <div class="driftHudSub">GPS-Livewert in Knoten. Die Anzeige folgt dem REC-Tracking.</div>
-            </div>
-            <div class="driftAmpel" id="driftAmpelLabel">
-              <span class="trafficLight" aria-hidden="true">
-                <span class="trafficDot red" id="trafficRed"></span>
-                <span class="trafficDot yellow" id="trafficYellow"></span>
-                <span class="trafficDot green" id="trafficGreen"></span>
-              </span>
-              <span id="driftAmpelText">Bereit</span>
-            </div>
-          </div>
-          <div class="driftSpeedRow">
-            <div>
-              <div class="driftSpeedLabel">Aktuelle Drift</div>
-              <div class="driftSpeedBig"><span id="driftSpeedValue">0,00</span> kn</div>
-            </div>
-            <div class="hint" style="margin:0;padding:8px 10px;min-width:0">
-              <span class="miniDot"></span>
-              <span id="driftDeltaValue">0,00 kn Abw.</span>
-            </div>
-          </div>
-          <label class="driftHudSub" for="driftIdealSelect" style="display:block;margin-top:12px">Idealdrift</label>
-          <select id="driftIdealSelect" class="select driftSelect">
-            <option value="dorsch">Dorsch – 0,8 kn</option>
-            <option value="leng">Leng – 0,35 kn</option>
-            <option value="plattfisch">Plattfisch – 0,5 kn</option>
-            <option value="heilbutt">Heilbutt – 0,9 kn</option>
-            <option value="seelachs">Seelachs – 0,7 kn</option>
-            <option value="makrele">Makrele – 1,2 kn</option>
-          </select>
-          <div class="driftMeta">
-            <div class="driftMetaBox">
-              <div class="driftMetaK">Zielwert</div>
-              <div class="driftMetaV" id="driftIdealValue">0,8 kn</div>
-            </div>
-            <div class="driftMetaBox">
-              <div class="driftMetaK">GPS-Status</div>
-              <div class="driftMetaV" id="driftGpsState">Warte auf Fix</div>
-            </div>
-          </div>
-        </div>
+        <button id="infoBtn" class="infoBtn" type="button" title="Idealdriftgeschwindigkeiten anzeigen">i</button>
         <div class="legendBox">
           <div class="legendItem"><span class="legendDot kante"></span>kante</div>
           <div class="legendItem"><span class="legendDot dorsch"></span>Dorsch</div>
@@ -1547,19 +1576,6 @@
     let driftLine = null;
     let driftCurrentMarker = null;
     let driftLastSavedPointAt = 0;
-    const DRIFT_IDEAL_KEY = 'alesund_drift_ideal_v1';
-    const DRIFT_KNOT_FACTOR = 1.9438444924406048;
-    const DRIFT_IDEALS = {
-      dorsch: { label: 'Dorsch', knots: 0.8 },
-      leng: { label: 'Leng', knots: 0.35 },
-      plattfisch: { label: 'Plattfisch', knots: 0.5 },
-      heilbutt: { label: 'Heilbutt', knots: 0.9 },
-      seelachs: { label: 'Seelachs', knots: 0.7 },
-      makrele: { label: 'Makrele', knots: 1.2 }
-    };
-    let driftIdealType = safeStorageGet(DRIFT_IDEAL_KEY) || 'dorsch';
-    let driftLastFix = null;
-    let driftSpeedKn = 0;
 
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -1633,7 +1649,6 @@
     const depthFilter = document.getElementById('depthFilter');
     const countPoints = document.getElementById('countPoints');
     const visibleCount = document.getElementById('visibleCount');
-    const nearestSpot = document.getElementById('nearestSpot');
     const activeType = document.getElementById('activeType');
 
     const detail = {
@@ -1679,98 +1694,6 @@
       try { localStorage.removeItem(key); } catch (e) {}
     }
 
-    function clampDriftIdeal(value){
-      return DRIFT_IDEALS[value] ? value : 'dorsch';
-    }
-
-    function knToText(value){
-      return Number.isFinite(value) ? value.toFixed(2).replace('.', ',') : '0,00';
-    }
-
-    function getIdealKn(){
-      return DRIFT_IDEALS[driftIdealType]?.knots ?? 0.8;
-    }
-
-    function getDriftStatus(currentKn, idealKn){
-      const diff = Math.abs((Number(currentKn) || 0) - (Number(idealKn) || 0));
-      const greenLimit = Math.max(0.12, idealKn * 0.15);
-      const yellowLimit = Math.max(0.25, idealKn * 0.35);
-      if (diff <= greenLimit) return 'green';
-      if (diff <= yellowLimit) return 'yellow';
-      return 'red';
-    }
-
-    function setDriftHudVisible(visible){
-      const hud = document.getElementById('driftHud');
-      if (!hud) return;
-      hud.classList.toggle('open', !!visible);
-    }
-
-    function updateDriftHud(){
-      const speedEl = document.getElementById('driftSpeedValue');
-      const deltaEl = document.getElementById('driftDeltaValue');
-      const idealEl = document.getElementById('driftIdealValue');
-      const stateEl = document.getElementById('driftGpsState');
-      const textEl = document.getElementById('driftAmpelText');
-      const red = document.getElementById('trafficRed');
-      const yellow = document.getElementById('trafficYellow');
-      const green = document.getElementById('trafficGreen');
-      const select = document.getElementById('driftIdealSelect');
-      if (!speedEl || !deltaEl || !idealEl || !stateEl || !textEl || !red || !yellow || !green) return;
-
-      const idealKn = getIdealKn();
-      const speedKn = Number.isFinite(driftSpeedKn) ? Math.max(0, driftSpeedKn) : 0;
-      const deltaKn = speedKn - idealKn;
-      const status = driftTrackingActive ? getDriftStatus(speedKn, idealKn) : 'idle';
-
-      if (select && select.value !== driftIdealType) select.value = driftIdealType;
-      speedEl.textContent = knToText(speedKn);
-      deltaEl.textContent = `${deltaKn >= 0 ? '+' : '−'}${knToText(Math.abs(deltaKn))} kn Abw.`;
-      idealEl.textContent = `${DRIFT_IDEALS[driftIdealType].knots.toFixed(2).replace('.', ',')} kn`;
-      stateEl.textContent = driftLastFix
-        ? `Fix ±${Math.round(driftLastFix.accuracy ?? 0)} m`
-        : 'Warte auf Fix';
-
-      [red, yellow, green].forEach(dot => dot.classList.remove('active'));
-      let label = 'Bereit';
-      if (status === 'green') { green.classList.add('active'); label = 'Grün – im Rahmen'; }
-      else if (status === 'yellow') { yellow.classList.add('active'); label = 'Gelb – etwas abweichend'; }
-      else if (status === 'red') { red.classList.add('active'); label = 'Rot – stark abweichend'; }
-      else { label = driftTrackingActive ? 'Warte auf GPS' : 'Bereit'; }
-      textEl.textContent = label;
-
-      const hud = document.getElementById('driftHud');
-      if (hud) hud.dataset.status = status;
-    }
-
-    function setDriftIdeal(value){
-      driftIdealType = clampDriftIdeal(value);
-      safeStorageSet(DRIFT_IDEAL_KEY, driftIdealType);
-      updateDriftHud();
-    }
-
-    function handleDriftFix(position){
-      const coords = position?.coords || {};
-      const lat = Number(coords.latitude);
-      const lng = Number(coords.longitude);
-      const accuracy = Number.isFinite(coords.accuracy) ? Number(coords.accuracy) : null;
-      const ts = Date.now();
-      const currentFix = { lat, lng, accuracy, ts };
-
-      if (driftLastFix) {
-        const dt = (ts - driftLastFix.ts) / 1000;
-        if (dt > 0.25) {
-          const distanceM = haversineM(driftLastFix, currentFix);
-          driftSpeedKn = (distanceM / dt) * DRIFT_KNOT_FACTOR;
-        }
-      }
-
-      if (!Number.isFinite(driftSpeedKn) || driftSpeedKn < 0) driftSpeedKn = 0;
-      driftLastFix = currentFix;
-      appendDriftPoint(lat, lng, accuracy);
-      updateDriftHud();
-    }
-
     function setDriftButtonState(){
       const btn = document.getElementById('driftTrackBtn');
       if (!btn) return;
@@ -1781,8 +1704,6 @@
       btn.innerHTML = driftTrackingActive
         ? '<span class="recDot"></span> REC'
         : '<span class="recDot" style="animation:none;opacity:.4;background:#9aa8b8;box-shadow:none"></span> REC';
-      setDriftHudVisible(driftTrackingActive);
-      updateDriftHud();
     }
 
     function persistDriftTrack(){
@@ -1831,8 +1752,6 @@
 
     function clearDriftTrack(alsoStorage = true){
       driftTrack = [];
-      driftLastFix = null;
-      driftSpeedKn = 0;
       if (driftLine) driftLine.setLatLngs([]);
       if (driftCurrentMarker && map.hasLayer(driftCurrentMarker)) {
         map.removeLayer(driftCurrentMarker);
@@ -1843,12 +1762,10 @@
         safeStorageRemove(DRIFT_STORAGE_KEY);
       }
       persistDriftTrack();
-      updateDriftHud();
     }
 
     function stopDriftTracking(keepTrack = true){
       driftTrackingActive = false;
-      driftSpeedKn = 0;
       if (driftWatchId !== null) {
         navigator.geolocation.clearWatch(driftWatchId);
         driftWatchId = null;
@@ -1858,8 +1775,6 @@
       } else {
         persistDriftTrack();
       }
-      setDriftHudVisible(false);
-      updateDriftHud();
     }
 
     function appendDriftPoint(lat, lng, accuracy = null){
@@ -1911,11 +1826,8 @@
       }
 
       driftTrackingActive = true;
-      driftLastFix = null;
-      driftSpeedKn = 0;
       ensureDriftLayer();
       persistDriftTrack();
-      updateDriftHud();
 
       if (driftWatchId !== null) {
         navigator.geolocation.clearWatch(driftWatchId);
@@ -1924,7 +1836,8 @@
 
       driftWatchId = navigator.geolocation.watchPosition(
         (position) => {
-          handleDriftFix(position);
+          const { latitude, longitude, accuracy } = position.coords;
+          appendDriftPoint(latitude, longitude, accuracy);
         },
         (err) => {
           console.log('Drift-Tracking Fehler:', err);
@@ -1950,21 +1863,12 @@
         driftTrack = [];
       }
 
-      driftLastFix = driftTrack.length ? driftTrack[driftTrack.length - 1] : null;
-      driftSpeedKn = 0;
-
-      const idealSelect = document.getElementById('driftIdealSelect');
-      driftIdealType = clampDriftIdeal(safeStorageGet(DRIFT_IDEAL_KEY) || driftIdealType || 'dorsch');
-      if (idealSelect) idealSelect.value = driftIdealType;
-
       if (driftTrack.length) {
         ensureDriftLayer();
         renderDriftTrack();
       } else {
         setDriftButtonState();
       }
-
-      updateDriftHud();
 
       if (driftTrackingActive) {
         startDriftTracking(true);
@@ -2113,7 +2017,6 @@
       detail.drive.textContent = spot.drive;
       detail.fish.textContent = safeArr(spot.fish).join(', ');
       detail.depth.textContent = spot.depth;
-      nearestSpot.textContent = `${spot.name.replace(/\s+/g,' ').slice(0,22)}…`;
     }
 
     function focusSpot(id, pan=false){
@@ -2255,15 +2158,7 @@
 
       countPoints.textContent = spots.length;
 
-      if (spots.length) {
-        const nearest = spots.reduce((best, s) => {
-          const d = haversineKm(start, s);
-          return !best || d < best.d ? { spot: s, d } : best;
-        }, null);
-        nearestSpot.textContent = nearest ? `${nearest.spot.name.slice(0,22)}…` : '–';
-      } else {
-        nearestSpot.textContent = '–';
-      }
+   
 
       updateList();
       if (fit) fitAll();
@@ -2462,10 +2357,6 @@ window.closeEdit = function(){
       setDriftButtonState();
     });
 
-    document.getElementById('driftIdealSelect')?.addEventListener('change', (e) => {
-      setDriftIdeal(e.target.value);
-    });
-
     window.addEventListener('beforeunload', () => {
       persistDriftTrack();
     });
@@ -2617,7 +2508,54 @@ document.getElementById("saveEditBtn").addEventListener("click", () => {
   rebuildAll(false);
   closeEdit();
 });
+
+window.addEventListener('DOMContentLoaded', () => {
+  const infoModal = document.getElementById('infoModal');
+  const infoBtn = document.getElementById('infoBtn');
+  const infoCloseBtn = document.getElementById('infoCloseBtn');
+
+  function openInfoModal(){
+    if (!infoModal) return;
+    infoModal.classList.add('open');
+    infoModal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeInfoModal(){
+    if (!infoModal) return;
+    infoModal.classList.remove('open');
+    infoModal.setAttribute('aria-hidden', 'true');
+  }
+
+  infoBtn?.addEventListener('click', openInfoModal);
+  infoCloseBtn?.addEventListener('click', closeInfoModal);
+  infoModal?.addEventListener('click', (e) => {
+    if (e.target === infoModal) closeInfoModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeInfoModal();
+  });
+});
 </script>
+
+<div id="infoModal" class="infoModal" aria-hidden="true">
+  <div class="infoCard" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="infoHead">
+      <div>
+        <h3 id="infoTitle" class="infoTitle">Idealdriftgeschwindigkeiten</h3>
+        <p class="infoSub">Richtwerte für die Köderführung in Knoten.</p>
+      </div>
+      <button id="infoCloseBtn" class="infoClose" type="button" aria-label="Popup schließen">×</button>
+    </div>
+    <div class="infoList">
+      <div class="infoRow"><span class="infoSpecies">Dorsch</span><span class="infoValue">0,8 kn</span></div>
+      <div class="infoRow"><span class="infoSpecies">Leng</span><span class="infoValue">0,35 kn</span></div>
+      <div class="infoRow"><span class="infoSpecies">Plattfisch</span><span class="infoValue">0,5 kn</span></div>
+      <div class="infoRow"><span class="infoSpecies">Heilbutt</span><span class="infoValue">0,9 kn</span></div>
+      <div class="infoRow"><span class="infoSpecies">Seelachs</span><span class="infoValue">0,7 kn</span></div>
+      <div class="infoRow"><span class="infoSpecies">Makrele</span><span class="infoValue">1,2 kn</span></div>
+    </div>
+  </div>
+</div>
 
 <button id="liveToggle" class="liveToggle" title="Live-Daten öffnen">❯</button>
 
@@ -2637,7 +2575,6 @@ document.getElementById("saveEditBtn").addEventListener("click", () => {
 <div class="liveCard" id="boxTide"></div>
   </div>
 
-  <div class="liveCard wide" id="boxBite"></div>
   <div class="liveCard wide" id="boxBestTimes"></div>
   <div class="liveCard wide" id="boxScoreChart"></div>
 </section>
@@ -2657,7 +2594,6 @@ const boxWind = document.getElementById('boxWind');
 const boxCurrent = document.getElementById('boxCurrent');
 const boxWave = document.getElementById('boxWave');
 const boxTide = document.getElementById('boxTide');
-const boxBite = document.getElementById('boxBite');
 const boxBestTimes = document.getElementById('boxBestTimes');
 const boxScoreChart = document.getElementById('boxScoreChart');
 
@@ -3151,7 +3087,6 @@ async function refreshLiveData(){
     boxCurrent.innerHTML = 'Lade Strömung…';
     boxWave.innerHTML = 'Lade Wellen…';
     boxTide.innerHTML = 'Lade Tide…';
-    boxBite.innerHTML = 'Lade Beißindex…';
     boxBestTimes.innerHTML = 'Lade beste Zeiten…';
     boxScoreChart.innerHTML = 'Lade 24h-Verlauf…';
 
@@ -3287,10 +3222,24 @@ async function refreshLiveData(){
      ">
     Pro-Wissen
   </a>
+
+<a href="https://www.norgeskart.no/?zoom=11&lat=6959488.07&lon=44642.46&p=searchOptionsPanel&backgroundLayer=oceanicelectronic&rotation=0"
+   target="_blank"
+   class="liveBtn"
+   style="
+      display:inline-block;
+      padding:10px 12px;
+      border-radius:10px;
+      background:#28a745;
+      color:white;
+      text-decoration:none;
+      font-weight:600;
+   ">
+  Tiefenkarte
+</a>
 </div>
     `;
 
-    boxBite.innerHTML = scoreSummaryHtml(series);
 
     boxBestTimes.innerHTML = `
       <div class="liveK">Beste Angelzeiten</div>
@@ -3302,7 +3251,6 @@ async function refreshLiveData(){
           </div>
         `).join('')}
       </div>
-      <div class="liveSmall">Top 4 Stunden im nächsten 24h-Fenster in Ålesund.</div>
     `;
 
     updateChartCard(series);
@@ -3316,7 +3264,6 @@ async function refreshLiveData(){
     boxCurrent.innerHTML = 'Live-Daten nicht geladen.';
     boxWave.innerHTML = 'Live-Daten nicht geladen.';
     boxTide.innerHTML = 'Live-Daten nicht geladen.';
-    boxBite.innerHTML = 'Live-Daten nicht geladen.';
     boxBestTimes.innerHTML = 'Live-Daten nicht geladen.';
     boxScoreChart.innerHTML = 'Live-Daten nicht geladen.';
     console.error(err);
