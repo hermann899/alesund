@@ -578,6 +578,51 @@
           <span class="recDot"></span>
           REC
         </button>
+        <div id="driftHud" class="driftHud" aria-live="polite">
+          <div class="driftHudTop">
+            <div>
+              <div class="driftHudTitle">Driftgeschwindigkeit</div>
+              <div class="driftHudSub">GPS-Livewert in Knoten. Die Anzeige folgt dem REC-Tracking.</div>
+            </div>
+            <div class="driftAmpel" id="driftAmpelLabel">
+              <span class="trafficLight" aria-hidden="true">
+                <span class="trafficDot red" id="trafficRed"></span>
+                <span class="trafficDot yellow" id="trafficYellow"></span>
+                <span class="trafficDot green" id="trafficGreen"></span>
+              </span>
+              <span id="driftAmpelText">Bereit</span>
+            </div>
+          </div>
+          <div class="driftSpeedRow">
+            <div>
+              <div class="driftSpeedLabel">Aktuelle Drift</div>
+              <div class="driftSpeedBig"><span id="driftSpeedValue">0,00</span> kn</div>
+            </div>
+            <div class="hint" style="margin:0;padding:8px 10px;min-width:0">
+              <span class="miniDot"></span>
+              <span id="driftDeltaValue">0,00 kn Abw.</span>
+            </div>
+          </div>
+          <label class="driftHudSub" for="driftIdealSelect" style="display:block;margin-top:12px">Idealdrift</label>
+          <select id="driftIdealSelect" class="select driftSelect">
+            <option value="dorsch">Dorsch – 0,8 kn</option>
+            <option value="leng">Leng – 0,35 kn</option>
+            <option value="plattfisch">Plattfisch – 0,5 kn</option>
+            <option value="heilbutt">Heilbutt – 0,9 kn</option>
+            <option value="seelachs">Seelachs – 0,7 kn</option>
+            <option value="makrele">Makrele – 1,2 kn</option>
+          </select>
+          <div class="driftMeta">
+            <div class="driftMetaBox">
+              <div class="driftMetaK">Zielwert</div>
+              <div class="driftMetaV" id="driftIdealValue">0,8 kn</div>
+            </div>
+            <div class="driftMetaBox">
+              <div class="driftMetaK">GPS-Status</div>
+              <div class="driftMetaV" id="driftGpsState">Warte auf Fix</div>
+            </div>
+          </div>
+        </div>
         <div class="legendBox">
           <div class="legendItem"><span class="legendDot kante"></span>kante</div>
           <div class="legendItem"><span class="legendDot dorsch"></span>Dorsch</div>
@@ -1414,6 +1459,8 @@
       }
     ];
 
+    spots = spots.map(normalizeSpot);
+
     function iconColor(type){
       if(type === 'plattfisch') return '#66d9ef';
       if(type === 'makrele') return '#8dffb3';
@@ -1450,15 +1497,16 @@
         </svg>`;
     }
 
- function makeIcon(type, selected=false, disabled=false){
+ function makeIcon(type, selected=false, disabled=false, rating=0){
   const color = iconColor(type);
-const opacity = disabled ? 0.55 : 1;
-const filter = disabled ? 'grayscale(1) brightness(3.4)' : 'none';
+  const opacity = disabled ? 0.55 : 1;
+  const filter = disabled ? 'grayscale(1) brightness(3.4)' : 'none';
 
   return L.divIcon({
     className: '',
     html: `
       <div style="
+        position:relative;
         width:${selected ? 56 : 50}px;
         height:${selected ? 56 : 50}px;
         display:grid;
@@ -1469,10 +1517,11 @@ const filter = disabled ? 'grayscale(1) brightness(3.4)' : 'none';
         box-shadow:0 10px 30px rgba(0,0,0,.35);
         transform:${selected ? 'scale(1.08)' : 'scale(1)'};
         filter:${filter};
-opacity:${opacity};
+        opacity:${opacity};
         transition:.15s ease
       ">
         ${iconSvg(type, color)}
+        ${ratingBadge(rating)}
       </div>`,
     iconSize: [56,56],
     iconAnchor: [28,28],
@@ -1498,6 +1547,19 @@ opacity:${opacity};
     let driftLine = null;
     let driftCurrentMarker = null;
     let driftLastSavedPointAt = 0;
+    const DRIFT_IDEAL_KEY = 'alesund_drift_ideal_v1';
+    const DRIFT_KNOT_FACTOR = 1.9438444924406048;
+    const DRIFT_IDEALS = {
+      dorsch: { label: 'Dorsch', knots: 0.8 },
+      leng: { label: 'Leng', knots: 0.35 },
+      plattfisch: { label: 'Plattfisch', knots: 0.5 },
+      heilbutt: { label: 'Heilbutt', knots: 0.9 },
+      seelachs: { label: 'Seelachs', knots: 0.7 },
+      makrele: { label: 'Makrele', knots: 1.2 }
+    };
+    let driftIdealType = safeStorageGet(DRIFT_IDEAL_KEY) || 'dorsch';
+    let driftLastFix = null;
+    let driftSpeedKn = 0;
 
     const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -1617,6 +1679,98 @@ opacity:${opacity};
       try { localStorage.removeItem(key); } catch (e) {}
     }
 
+    function clampDriftIdeal(value){
+      return DRIFT_IDEALS[value] ? value : 'dorsch';
+    }
+
+    function knToText(value){
+      return Number.isFinite(value) ? value.toFixed(2).replace('.', ',') : '0,00';
+    }
+
+    function getIdealKn(){
+      return DRIFT_IDEALS[driftIdealType]?.knots ?? 0.8;
+    }
+
+    function getDriftStatus(currentKn, idealKn){
+      const diff = Math.abs((Number(currentKn) || 0) - (Number(idealKn) || 0));
+      const greenLimit = Math.max(0.12, idealKn * 0.15);
+      const yellowLimit = Math.max(0.25, idealKn * 0.35);
+      if (diff <= greenLimit) return 'green';
+      if (diff <= yellowLimit) return 'yellow';
+      return 'red';
+    }
+
+    function setDriftHudVisible(visible){
+      const hud = document.getElementById('driftHud');
+      if (!hud) return;
+      hud.classList.toggle('open', !!visible);
+    }
+
+    function updateDriftHud(){
+      const speedEl = document.getElementById('driftSpeedValue');
+      const deltaEl = document.getElementById('driftDeltaValue');
+      const idealEl = document.getElementById('driftIdealValue');
+      const stateEl = document.getElementById('driftGpsState');
+      const textEl = document.getElementById('driftAmpelText');
+      const red = document.getElementById('trafficRed');
+      const yellow = document.getElementById('trafficYellow');
+      const green = document.getElementById('trafficGreen');
+      const select = document.getElementById('driftIdealSelect');
+      if (!speedEl || !deltaEl || !idealEl || !stateEl || !textEl || !red || !yellow || !green) return;
+
+      const idealKn = getIdealKn();
+      const speedKn = Number.isFinite(driftSpeedKn) ? Math.max(0, driftSpeedKn) : 0;
+      const deltaKn = speedKn - idealKn;
+      const status = driftTrackingActive ? getDriftStatus(speedKn, idealKn) : 'idle';
+
+      if (select && select.value !== driftIdealType) select.value = driftIdealType;
+      speedEl.textContent = knToText(speedKn);
+      deltaEl.textContent = `${deltaKn >= 0 ? '+' : '−'}${knToText(Math.abs(deltaKn))} kn Abw.`;
+      idealEl.textContent = `${DRIFT_IDEALS[driftIdealType].knots.toFixed(2).replace('.', ',')} kn`;
+      stateEl.textContent = driftLastFix
+        ? `Fix ±${Math.round(driftLastFix.accuracy ?? 0)} m`
+        : 'Warte auf Fix';
+
+      [red, yellow, green].forEach(dot => dot.classList.remove('active'));
+      let label = 'Bereit';
+      if (status === 'green') { green.classList.add('active'); label = 'Grün – im Rahmen'; }
+      else if (status === 'yellow') { yellow.classList.add('active'); label = 'Gelb – etwas abweichend'; }
+      else if (status === 'red') { red.classList.add('active'); label = 'Rot – stark abweichend'; }
+      else { label = driftTrackingActive ? 'Warte auf GPS' : 'Bereit'; }
+      textEl.textContent = label;
+
+      const hud = document.getElementById('driftHud');
+      if (hud) hud.dataset.status = status;
+    }
+
+    function setDriftIdeal(value){
+      driftIdealType = clampDriftIdeal(value);
+      safeStorageSet(DRIFT_IDEAL_KEY, driftIdealType);
+      updateDriftHud();
+    }
+
+    function handleDriftFix(position){
+      const coords = position?.coords || {};
+      const lat = Number(coords.latitude);
+      const lng = Number(coords.longitude);
+      const accuracy = Number.isFinite(coords.accuracy) ? Number(coords.accuracy) : null;
+      const ts = Date.now();
+      const currentFix = { lat, lng, accuracy, ts };
+
+      if (driftLastFix) {
+        const dt = (ts - driftLastFix.ts) / 1000;
+        if (dt > 0.25) {
+          const distanceM = haversineM(driftLastFix, currentFix);
+          driftSpeedKn = (distanceM / dt) * DRIFT_KNOT_FACTOR;
+        }
+      }
+
+      if (!Number.isFinite(driftSpeedKn) || driftSpeedKn < 0) driftSpeedKn = 0;
+      driftLastFix = currentFix;
+      appendDriftPoint(lat, lng, accuracy);
+      updateDriftHud();
+    }
+
     function setDriftButtonState(){
       const btn = document.getElementById('driftTrackBtn');
       if (!btn) return;
@@ -1627,6 +1781,8 @@ opacity:${opacity};
       btn.innerHTML = driftTrackingActive
         ? '<span class="recDot"></span> REC'
         : '<span class="recDot" style="animation:none;opacity:.4;background:#9aa8b8;box-shadow:none"></span> REC';
+      setDriftHudVisible(driftTrackingActive);
+      updateDriftHud();
     }
 
     function persistDriftTrack(){
@@ -1675,6 +1831,8 @@ opacity:${opacity};
 
     function clearDriftTrack(alsoStorage = true){
       driftTrack = [];
+      driftLastFix = null;
+      driftSpeedKn = 0;
       if (driftLine) driftLine.setLatLngs([]);
       if (driftCurrentMarker && map.hasLayer(driftCurrentMarker)) {
         map.removeLayer(driftCurrentMarker);
@@ -1685,10 +1843,12 @@ opacity:${opacity};
         safeStorageRemove(DRIFT_STORAGE_KEY);
       }
       persistDriftTrack();
+      updateDriftHud();
     }
 
     function stopDriftTracking(keepTrack = true){
       driftTrackingActive = false;
+      driftSpeedKn = 0;
       if (driftWatchId !== null) {
         navigator.geolocation.clearWatch(driftWatchId);
         driftWatchId = null;
@@ -1698,6 +1858,8 @@ opacity:${opacity};
       } else {
         persistDriftTrack();
       }
+      setDriftHudVisible(false);
+      updateDriftHud();
     }
 
     function appendDriftPoint(lat, lng, accuracy = null){
@@ -1749,8 +1911,11 @@ opacity:${opacity};
       }
 
       driftTrackingActive = true;
+      driftLastFix = null;
+      driftSpeedKn = 0;
       ensureDriftLayer();
       persistDriftTrack();
+      updateDriftHud();
 
       if (driftWatchId !== null) {
         navigator.geolocation.clearWatch(driftWatchId);
@@ -1759,8 +1924,7 @@ opacity:${opacity};
 
       driftWatchId = navigator.geolocation.watchPosition(
         (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          appendDriftPoint(latitude, longitude, accuracy);
+          handleDriftFix(position);
         },
         (err) => {
           console.log('Drift-Tracking Fehler:', err);
@@ -1786,12 +1950,21 @@ opacity:${opacity};
         driftTrack = [];
       }
 
+      driftLastFix = driftTrack.length ? driftTrack[driftTrack.length - 1] : null;
+      driftSpeedKn = 0;
+
+      const idealSelect = document.getElementById('driftIdealSelect');
+      driftIdealType = clampDriftIdeal(safeStorageGet(DRIFT_IDEAL_KEY) || driftIdealType || 'dorsch');
+      if (idealSelect) idealSelect.value = driftIdealType;
+
       if (driftTrack.length) {
         ensureDriftLayer();
         renderDriftTrack();
       } else {
         setDriftButtonState();
       }
+
+      updateDriftHud();
 
       if (driftTrackingActive) {
         startDriftTracking(true);
@@ -1824,6 +1997,43 @@ opacity:${opacity};
 
     function safeArr(value){
       return Array.isArray(value) ? value : [];
+    }
+
+    function clampRating(value){
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 0;
+      return Math.max(0, Math.min(5, Math.round(n)));
+    }
+
+    function normalizeSpot(spot){
+      return {
+        ...spot,
+        rating: clampRating(spot?.rating)
+      };
+    }
+
+    function ratingBadge(rating){
+      const value = clampRating(rating);
+      if (value <= 0) return '';
+      return `
+        <div style="
+          position:absolute;
+          right:-6px;
+          top:-7px;
+          display:inline-flex;
+          align-items:center;
+          gap:1px;
+          padding:2px 5px;
+          border-radius:999px;
+          background:rgba(7,17,28,.96);
+          border:1px solid rgba(255,255,255,.16);
+          box-shadow:0 8px 18px rgba(0,0,0,.28);
+          font-size:9px;
+          line-height:1;
+          color:#ffcb66;
+          white-space:nowrap;
+          pointer-events:none;
+        ">${'★'.repeat(value)}</div>`;
     }
 
     function createSpotCard(spot){
@@ -1929,7 +2139,7 @@ opacity:${opacity};
 
     function addSingleSpot(spot){
       const marker = L.marker([spot.lat, spot.lng], {
-        icon: makeIcon(primaryType(spot)),
+        icon: makeIcon(primaryType(spot), false, spot.showOnMap === false, spot.rating),
         riseOnHover: true
       });
 
@@ -1985,7 +2195,7 @@ opacity:${opacity};
   const isActive =
     Number(document.querySelector('.spot.active')?.dataset.id) === Number(spot.id);
 
-  marker.setIcon(makeIcon(primaryType(spot), isActive, disabled));
+  marker.setIcon(makeIcon(primaryType(spot), isActive, disabled, spot.rating));
 
   if (show) {
     if (!map.hasLayer(marker)) marker.addTo(map);
@@ -2128,6 +2338,7 @@ window.editSpot = function(id){
   document.getElementById("e_icon").value = spot.icon || primaryType(spot) || "dorsch";
   document.getElementById("e_fish").value = (spot.fish || []).join(", ");
   document.getElementById("e_tags").value = (spot.tags || []).join(", ");
+  document.getElementById("e_rating").value = String(clampRating(spot.rating));
 
   document.getElementById("editModal").style.display = "flex";
   document.getElementById("e_showOnMap").checked =
@@ -2186,7 +2397,8 @@ window.closeEdit = function(){
             depth: s.depth ?? 'Tiefe?',
             tags: safeArr(s.tags),
             short: s.short ?? 'Neuer Spot',
-            long: s.long ?? s.short ?? 'Neuer Spot'
+            long: s.long ?? s.short ?? 'Neuer Spot',
+            rating: clampRating(s.rating)
           }));
 
           rebuildAll(true);
@@ -2227,6 +2439,7 @@ window.closeEdit = function(){
         fish: ['Dorsch'],
         depth: '-',
         tags: ['Kante'],
+        rating: 0,
         short: 'Kurze Spotbeschreibung',
         long: 'Lange Spotbeschreibung'
       };
@@ -2247,6 +2460,10 @@ window.closeEdit = function(){
       }
       startDriftTracking(false);
       setDriftButtonState();
+    });
+
+    document.getElementById('driftIdealSelect')?.addEventListener('change', (e) => {
+      setDriftIdeal(e.target.value);
     });
 
     window.addEventListener('beforeunload', () => {
@@ -2355,7 +2572,18 @@ function saveSpot(){
       <option value="makrele">Marker: Makrele</option>
     </select><br>
     <input id="e_fish" placeholder="Fische (komma)" style="width:100%;margin-bottom:6px"><br>
-    <input id="e_tags" placeholder="Tags (komma)" style="width:100%;margin-bottom:10px"><br>
+    <input id="e_tags" placeholder="Tags (komma)" style="width:100%;margin-bottom:6px"><br>
+    <label style="display:block;font-size:13px;margin:4px 0 12px;color:#d7e1ef;">
+      Bewertung (0 = noch nicht bewertet)
+      <select id="e_rating" style="width:100%;margin-top:6px;">
+        <option value="0">0</option>
+        <option value="1">1 Stern</option>
+        <option value="2">2 Sterne</option>
+        <option value="3">3 Sterne</option>
+        <option value="4">4 Sterne</option>
+        <option value="5">5 Sterne</option>
+      </select>
+    </label>
 
     <button id="saveEditBtn">Speichern</button>
     <button onclick="closeEdit()" style="float:right">Abbrechen</button>
@@ -2383,6 +2611,7 @@ document.getElementById("saveEditBtn").addEventListener("click", () => {
   spot.tags = document.getElementById("e_tags").value
     .split(",").map(x => x.trim()).filter(Boolean);
 
+  spot.rating = clampRating(document.getElementById("e_rating").value);
   spot.showOnMap = document.getElementById("e_showOnMap").checked;
 
   rebuildAll(false);
