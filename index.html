@@ -1649,7 +1649,7 @@
         drive: '',
         icon: 'dorsch',
         fish: ['Köhler'],
-        depth: '50 m Kante',
+        depth: '50 m',
         tags: ['Kante', 'Schwarm'],
         short: 'Köhler an der 50-m-Kante.',
         long: 'Kantenbereich auf 50 Metern mit Köhler-Potenzial.'
@@ -1663,7 +1663,7 @@
         drive: '',
         icon: 'dorsch',
         fish: ['Pollack'],
-        depth: '40 m Kante',
+        depth: '40 m',
         tags: ['Kante', 'Struktur'],
         short: 'Pollack an der 40-m-Kante.',
         long: 'Kantenbereich auf 40 Metern mit Pollack-Potenzial.'
@@ -1677,13 +1677,41 @@
         drive: '',
         icon: 'makrele',
         fish: ['Makrele', 'Pollack', 'Leng'],
-        depth: '45 m Kante',
+        depth: '45 m',
         tags: ['Kante', 'Mischspot'],
         short: 'Mischspot an der 45-m-Kante.',
         long: 'Kantenbereich auf 45 Metern mit Makrele, Pollack und Leng.'
       },
-      {
+	   {
         id: 40,
+        showOnMap: true,
+        name: 'Kante',
+        lat: 62.555002,
+        lng: 6.191035,
+        drive: '',
+        icon: 'kante',
+        fish: ['Dorsch', 'Pollack'],
+        depth: '80 m',
+        tags: ['Kante', 'Mischspot'],
+        short: 'Mischspot an der 80-m-Kante.',
+        long: 'Kantenbereich auf 80 Metern mit Dorsch, Pollack.'
+      },
+	   {
+        id: 41,
+        showOnMap: true,
+        name: 'Kante',
+        lat: 62.629179,
+        lng: 6.578579,
+        drive: '',
+        icon: 'kante',
+        fish: ['Dorsch'],
+        depth: '80 m',
+        tags: ['Kante'],
+        short: '30 auf 100m Kante',
+        long: 'Kantenbereich auf 100m mit Dorsch'
+      },
+      {
+        id: 42,
         showOnMap: true,
         name: 'Köhler',
         lat: 62.656554,
@@ -1691,12 +1719,13 @@
         drive: '',
         icon: 'dorsch',
         fish: ['Köhler'],
-        depth: '30 m Kante',
+        depth: '30 m',
         tags: ['Kante', 'Schwarm'],
         short: 'Köhler an der 30-m-Kante.',
         long: 'Kantenbereich auf 30 Metern mit Köhler-Potenzial.'
       }
     ];
+
 
     spots = spots.map(normalizeSpot);
 
