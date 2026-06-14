@@ -1133,25 +1133,11 @@
         DomEvent: { disableClickPropagation() {}, stopPropagation() {} }
       };
     })();
-    const start = { name: 'Ålesund', lat: 62.4722, lng: 6.1549 };
+    const start = { name: 'Brattvåg', lat: 62.6082, lng: 6.4452 };
 
     let spots = [
       {
         id: 1,
-		showOnMap: true,
-        name: 'Sandøya Nordkante',
-        lat: 62.393333,
-        lng: 5.789139,
-        drive: '21 km Fahrweg',
-        icon: 'dorsch',
-        fish: ['Dorsch', 'Schellfisch', 'Seelachs', 'Lumb', 'Leng'],
-        depth: '20–30 m, 50–120 m, Grundrinne',
-        tags: ['Rinne', 'Kante', 'Mittelwasser', 'Grund'],
-        short: 'Rinne nordseitig, gute Mischung aus Grund- und Mittelwasserfischen.',
-        long: 'Von der Nordseite Sandøyas vorgelagerte Rinne. Dorsche sind eher im Bereich 20–30 m, Schellfisch tiefer, Seelachs im Mittelwasser. Am Grund in der Rinne: Lumb und Leng bei schwerer Montage.'
-      },
-      {
-        id: 2,
 		showOnMap: true,
         name: 'Kante 16 auf 40 m',
         lat: 62.536194,
@@ -1165,7 +1151,7 @@
         long: 'Starker Tiefenwechsel 16 auf 40 Meter. Schellfisch-Potenzial.'
       },
       {
-        id: 3,
+        id: 2,
 		showOnMap: true,
         name: 'Pollack / Seelachs-Kante südlich',
         lat: 62.444750,
@@ -1179,7 +1165,7 @@
         long: '30 auf 80 m Kante; etwas südlich suchen. Schwerpunkt auf Pollack, Seelachs und Leng. (Fishbuddy)'
       },
       {
-        id: 4,
+        id: 3,
 		showOnMap: true,
         name: 'Kante 16 auf 50 m',
         lat: 62.491944,
@@ -1193,7 +1179,7 @@
         long: '16 auf 50 m Kante, passend für Pollack und Seelachs.'
       },
       {
-        id: 5,
+        id: 4,
 		showOnMap: true,
         name: 'Kante 30 auf 70 m',
         lat: 62.456444,
@@ -1207,7 +1193,7 @@
         long: '30 auf 70 m Kante, Allround: Köhler, Dorsch, Leng (fishbuddy)'
       },
       {
-        id: 6,
+        id: 5,
 		showOnMap: true,
         name: 'Seelachs-Schwärme am Fahrwasser',
         lat: 62.443111,
@@ -1221,7 +1207,7 @@
         long: 'Seelachs im Mittelwasser auf Echolot, schnelle Köderführung durch die Wasserschichten. Besonders interessant an Ausgängen kleinerer Buchten und sichtbaren Strömungskanten.'
       },
       {
-        id: 7,
+        id: 6,
 		showOnMap: true,
         name: '100 auf 300 m Driftkante',
         lat: 62.427389,
@@ -1235,7 +1221,7 @@
         long: 'Driften über eine tiefe Kante von 100 auf 300 m, Seelachs-Potenzial auch südlich.'
       },
       {
-        id: 8,
+        id: 7,
 		showOnMap: true,
         name: 'Heilbutt / Scholle / Sand',
         lat: 62.49003,
@@ -1249,7 +1235,7 @@
         long: 'Sandgrund mit Heilbutt- und Schollenpotenzial.'
       },
       {
-        id: 9,
+        id: 8,
 		showOnMap: true,
         name: '30 auf 60 m Kante',
         lat: 62.469306,
@@ -1263,7 +1249,7 @@
         long: '30 auf 60 m Kante, Tiefenkarte und Unterwasserberge beachten; Pollack-Potenzial'
       },
       {
-        id: 10,
+        id: 9,
 		showOnMap: true,
         name: 'Makrele / Seelachs',
         lat: 62.458944,
@@ -1277,7 +1263,7 @@
         long: 'Makrele und Seelachs, klassischer Mittelwasserpunkt. (fishbuddy)'
       },
       {
-        id: 11,
+        id: 10,
 		showOnMap: true,
         name: 'Seelachs / Leng / Dorsch-Löcher',
         lat: 62.448778,
@@ -1291,7 +1277,7 @@
         long: 'Seelachs, Leng und Dorsch an Kanten und Löchern über 100 m. Unterwasserberge und Allround-Ansatz.'
       },
       {
-        id: 12,
+        id: 11,
 		showOnMap: true,
         name: 'Wittling westlich',
         lat: 62.4860,
@@ -1305,7 +1291,7 @@
         long: 'Etwas westlich: 42 auf 70 m Kante mit Wittling.'
       },
       {
-        id: 13,
+        id: 12,
 		showOnMap: true,
         name: '34 m Berg / Südwestkante',
         lat: 62.487028,
@@ -1319,7 +1305,7 @@
         long: '34 m Berg mit südwestlich steiler Kante.'
       },
       {
-        id: 14,
+        id: 13,
 		showOnMap: true,
         name: 'Plattfische / Heilbutt',
         lat: 62.535807,
@@ -1333,7 +1319,7 @@
         long: 'Plattfisch- und Heilbuttpunkt.'
       },
       {
-        id: 15,
+        id: 14,
 		showOnMap: true,
         name: 'Flachwasserberge / Allround',
         lat: 62.45185,
@@ -1347,7 +1333,7 @@
         long: 'Seelachs, Makrele und Dorsch, dazu Unterwasserberge. (fishbuddy)'
       },
       {
-        id: 16,
+        id: 15,
 		showOnMap: true,
         name: 'Felsig / Strömungskanten',
         lat: 62.498222,
@@ -1361,7 +1347,7 @@
         long: 'Felsiger Bereich mit Strömungskanten, schwere Pilker und Gummifisch. Seelachsschwärme im Mittelwasser möglich, Makrele ebenfalls vorkommend.'
       },
       {
-        id: 17,
+        id: 16,
 		showOnMap: true,
         name: 'Lille Kalvøy Nordwest',
         lat: 62.487000,
@@ -1375,7 +1361,7 @@
         long: 'Nordwestlich von Lille Kalvøy. Naturköder im Uferbereich gegenüber der Kaianlage.'
       },
       {
-        id: 18,
+        id: 17,
 		showOnMap: true,
         name: 'Schollenpunkt',
         lat: 62.488111,
@@ -1389,7 +1375,7 @@
         long: 'Scholle, in der Fishbuddy-App vermerkt.'
       },
       {
-        id: 19,
+        id: 18,
 		showOnMap: true,
         name: 'Rinne / Schellfisch / Seelachs / Dorsch',
         lat: 62.514626,
@@ -1403,7 +1389,7 @@
         long: 'Rinne mit Schellfisch, Seelachs und Dorsch. Zwei Punkte markieren einen Abschnitt mit breiterem Suchfeld.'
       },
 	    {
-        id: 20,
+        id: 19,
 		showOnMap: true,
         name: 'Flachplateaus / Makrele / Dorsch',
         lat: 62.491807,
@@ -1417,7 +1403,7 @@
         long: 'Mehrere flache Plateaus inmitten der Tiefen, Tiefenkarte bereithalten für genaue Lokalisation.'
       },
 	    {
-        id: 21,
+        id: 20,
 		showOnMap: true,
         name: 'Kanten / Dorsch',
         lat: 62.497332,
@@ -1431,7 +1417,7 @@
         long: 'An der Kante Richtung Ufer parallel schleppfischen, Schellfischpotential.'
       },
 	    {
-        id: 22,
+        id: 21,
 		showOnMap: true,
         name: 'Leng',
         lat: 62.52396,
@@ -1445,7 +1431,7 @@
         long: 'Leng-Spot: Struktur in Tiefe finden, Duftstoffe und geringe Drift, Köderfische bis 30cm, Paternoster'
       },
 	    {
-        id: 23,
+        id: 22,
 		showOnMap: true,
         name: 'Mittelwasser, Seelachs',
         lat: 62.53138,
@@ -1459,7 +1445,7 @@
         long: 'Wenig Struktur aber Potential für Seelachsschwärme. Schnelles Durchkurbeln der Wasserschichten.'
       },
       {
-        id: 24,
+        id: 23,
 		showOnMap: true,
         name: 'Fahrrinne >100 m',
         lat: 62.592639,
@@ -1473,7 +1459,7 @@
         long: 'Fahrrinne über 100 m, gezielt nutzen.'
        },
 	    {
-        id: 25,
+        id: 24,
 		showOnMap: true,
         name: 'Flachwasser, Plattfisch',
         lat: 62.58749,
@@ -1487,7 +1473,7 @@
         long: '20-60m: Wenig Struktur, lange Sandflächen zwischen beiden Küsten'
       },
 	   {
-        id: 26,
+        id: 25,
 		showOnMap: true,
         name: 'Pollack, Dorsch',
         lat: 62.493632,
@@ -1499,6 +1485,216 @@
         tags: ['Untiefen', 'Strukturpunkte', 'Fishbuddy'],
         short: 'zwei markante Unterwasserberge auf der Tiefenkarte sichtbar',
         long: 'zwei markante Unterwasserberge auf der Tiefenkarte sichtbar (Fishbuddy)'
+      },
+      {
+        id: 26,
+        showOnMap: true,
+        name: 'Makrele / Köhler',
+        lat: 62.641195,
+        lng: 6.366689,
+        drive: '',
+        icon: 'makrele',
+        fish: ['Makrele', 'Köhler'],
+        depth: '50 m tief',
+        tags: ['Tief', 'Schwarm'],
+        short: 'Tiefer Spot für Makrele und Köhler.',
+        long: '50 Meter tiefer Bereich mit Potenzial für Makrele und Köhler.'
+      },
+      {
+        id: 27,
+        showOnMap: true,
+        name: 'Schellfisch',
+        lat: 62.638127,
+        lng: 6.306294,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Schellfisch'],
+        depth: '55 m tief',
+        tags: ['Tiefe', 'Grund'],
+        short: 'Schellfisch auf 55 Metern.',
+        long: 'Tiefenpunkt auf 55 Metern mit Schellfisch-Potenzial.'
+      },
+      {
+        id: 28,
+        showOnMap: true,
+        name: 'Scholle',
+        lat: 62.671069,
+        lng: 6.240255,
+        drive: '',
+        icon: 'plattfisch',
+        fish: ['Scholle'],
+        depth: '30 m',
+        tags: ['Plattfisch', 'Sand'],
+        short: 'Schollenpunkt auf 30 Metern.',
+        long: 'Plattfischstelle auf rund 30 Metern.'
+      },
+      {
+        id: 29,
+        showOnMap: true,
+        name: 'Makrele',
+        lat: 62.639614,
+        lng: 6.410563,
+        drive: '',
+        icon: 'makrele',
+        fish: ['Makrele'],
+        depth: '50 m Kante',
+        tags: ['Kante', 'Schwarm'],
+        short: 'Makrelen an der 50-m-Kante.',
+        long: 'Kantenbereich auf 50 Metern mit Makrelen-Potenzial.'
+      },
+      {
+        id: 30,
+        showOnMap: true,
+        name: 'Schellfisch',
+        lat: 62.732545,
+        lng: 6.539839,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Schellfisch'],
+        depth: '105 m tief',
+        tags: ['Tief', 'Grund'],
+        short: 'Sehr tiefer Schellfisch-Spot.',
+        long: 'Tiefenbereich auf 105 Metern mit Schellfisch-Potenzial.'
+      },
+      {
+        id: 31,
+        showOnMap: true,
+        name: 'Pollack',
+        lat: 62.801894,
+        lng: 6.336667,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Pollack'],
+        depth: '20 m, südlich weitere Strukturen',
+        tags: ['Struktur', 'Südlich'],
+        short: 'Pollack an 20 Metern, südlich weitere Strukturen.',
+        long: 'Bereich auf 20 Metern, mit weiteren Strukturen südlich davon für Pollack.'
+      },
+      {
+        id: 32,
+        showOnMap: true,
+        name: 'Pollack',
+        lat: 62.64248,
+        lng: 6.514444,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Pollack'],
+        depth: '30 m',
+        tags: ['Tiefe', 'Struktur'],
+        short: 'Pollack auf 30 Metern.',
+        long: 'Spot auf 30 Metern mit Pollack-Potenzial.'
+      },
+      {
+        id: 33,
+        showOnMap: true,
+        name: 'Makrele / Pollack',
+        lat: 62.769465,
+        lng: 6.184327,
+        drive: '',
+        icon: 'makrele',
+        fish: ['Makrele', 'Pollack'],
+        depth: '40 m tief',
+        tags: ['Mischspot', 'Tiefe'],
+        short: 'Mischspot für Makrele und Pollack.',
+        long: 'Tiefenpunkt auf 40 Metern mit Makrele und Pollack.'
+      },
+      {
+        id: 34,
+        showOnMap: true,
+        name: 'Scholle',
+        lat: 62.768848,
+        lng: 6.34629,
+        drive: '',
+        icon: 'plattfisch',
+        fish: ['Scholle'],
+        depth: '35 m',
+        tags: ['Plattfisch', 'Sand'],
+        short: 'Schollenpunkt auf 35 Metern.',
+        long: 'Plattfischstelle auf rund 35 Metern.'
+      },
+      {
+        id: 35,
+        showOnMap: true,
+        name: 'Scholle',
+        lat: 62.731202,
+        lng: 6.382311,
+        drive: '',
+        icon: 'plattfisch',
+        fish: ['Scholle'],
+        depth: '30 m',
+        tags: ['Plattfisch', 'Sand'],
+        short: 'Schollenpunkt auf 30 Metern.',
+        long: 'Plattfischstelle auf rund 30 Metern.'
+      },
+      {
+        id: 36,
+        showOnMap: true,
+        name: 'Leng',
+        lat: 62.647013,
+        lng: 6.839144,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Leng'],
+        depth: '150 m',
+        tags: ['Tiefe', 'Naturköder'],
+        short: 'Tiefer Leng-Spot auf 150 Metern.',
+        long: 'Tiefenstelle auf 150 Metern mit Leng-Potenzial.'
+      },
+      {
+        id: 37,
+        showOnMap: true,
+        name: 'Köhler',
+        lat: 62.660634,
+        lng: 6.83048,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Köhler'],
+        depth: '50 m Kante',
+        tags: ['Kante', 'Schwarm'],
+        short: 'Köhler an der 50-m-Kante.',
+        long: 'Kantenbereich auf 50 Metern mit Köhler-Potenzial.'
+      },
+      {
+        id: 38,
+        showOnMap: true,
+        name: 'Pollack',
+        lat: 62.668534,
+        lng: 6.859451,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Pollack'],
+        depth: '40 m Kante',
+        tags: ['Kante', 'Struktur'],
+        short: 'Pollack an der 40-m-Kante.',
+        long: 'Kantenbereich auf 40 Metern mit Pollack-Potenzial.'
+      },
+      {
+        id: 39,
+        showOnMap: true,
+        name: 'Makrele / Pollack / Leng',
+        lat: 62.690081,
+        lng: 6.929784,
+        drive: '',
+        icon: 'makrele',
+        fish: ['Makrele', 'Pollack', 'Leng'],
+        depth: '45 m Kante',
+        tags: ['Kante', 'Mischspot'],
+        short: 'Mischspot an der 45-m-Kante.',
+        long: 'Kantenbereich auf 45 Metern mit Makrele, Pollack und Leng.'
+      },
+      {
+        id: 40,
+        showOnMap: true,
+        name: 'Köhler',
+        lat: 62.656554,
+        lng: 6.874514,
+        drive: '',
+        icon: 'dorsch',
+        fish: ['Köhler'],
+        depth: '30 m Kante',
+        tags: ['Kante', 'Schwarm'],
+        short: 'Köhler an der 30-m-Kante.',
+        long: 'Kantenbereich auf 30 Metern mit Köhler-Potenzial.'
       }
     ];
 
@@ -1572,7 +1768,7 @@
   });
 }
 
-    const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([62.48, 6.08], 10);
+    const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([62.63, 6.40], 10);
 
     let userMarker;
     let userAccuracy;
@@ -3272,7 +3468,7 @@ async function refreshLiveData(){
     Pro-Wissen
   </a>
 
-<a href="https://www.norgeskart.no/?zoom=11&lat=6959488.07&lon=44642.46&p=searchOptionsPanel&backgroundLayer=oceanicelectronic&rotation=0"
+<a href="https://www.norgeskart.no/?zoom=11&lat=6972158.465616889&lon=61284.560773162884&p=searchOptionsPanel&backgroundLayer=oceanicelectronic&rotation=0"
    target="_blank"
    class="liveBtn"
    style="
